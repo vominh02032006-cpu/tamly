@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Khảo sát học sinh – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="teacher-page">
+<div id="sidebar-mount"></div>
+<main class="t-main">
+  <div class="t-header">
+    <div><h1>📋 Kết quả khảo sát học sinh</h1><p class="t-subtitle" id="dashDate"></p></div>
+    <button class="btn-icon" onclick="loadPage()">🔄 Làm mới</button>
+  </div>
+  <div class="t-body">
+
+    <!-- Thống kê tổng -->
+    <div class="stat-cards" id="statCards" style="margin-bottom:20px">
+      <div class="sc"><div class="sc-icon blue">⏳</div><div><div class="sc-num">–</div><div class="sc-lbl">Đang tải…</div></div></div>
+    </div>
+
+    <!-- Biểu đồ phân phối WHO-5 -->
+    <div id="chartsWrap" style="display:none;margin-bottom:20px">
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-card-title">🌿 Phân phối điểm WHO-5 (0-100)</div><canvas id="who5Chart" height="220"></canvas></div>
+        <div class="chart-card"><div class="chart-card-title">🧘 Phân phối mức Stress PSS (0-40)</div><canvas id="pssChart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Bảng chi tiết -->
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px">📊 Chi tiết kết quả từng học sinh</h3>
+    <div id="emptyMsg" style="display:none" class="t-empty">
+      <div class="t-empty-icon">📋</div>
+      <p>Chưa có học sinh nào hoàn thành khảo sát.<br/>Hướng dẫn học sinh vào <strong>Trang kết quả → Làm khảo sát</strong>.</p>
+    </div>
+    <div class="tbl-wrap" id="tblWrap" style="display:none">
+      <table class="data-tbl">
+        <thead>
+          <tr>
+            <th>Học sinh</th><th>Lớp</th><th>Ngày làm</th>
+            <th>WHO-5</th><th>Xếp loại WHO-5</th>
+            <th>PSS</th><th>Xếp loại Stress</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+let charts = {};
+function dc(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+async function loadPage() {
+  try {
+    const surveys = await api('GET', '/api/survey/all');
+
+    // Thống kê
+    const total   = surveys.length;
+    const avgW5   = total ? Math.round(surveys.reduce((s,x)=>s+x.who5Score,0)/total) : null;
+    const avgPSS  = total ? Math.round(surveys.reduce((s,x)=>s+x.pssScore,0)/total) : null;
+    const lowW5   = surveys.filter(x=>x.who5Score<52).length;
+
+    document.getElementById('statCards').innerHTML = `
+      <div class="sc"><div class="sc-icon blue">📋</div><div><div class="sc-num">${total}</div><div class="sc-lbl">Lượt khảo sát</div></div></div>
+      <div class="sc"><div class="sc-icon green">🌿</div><div>
+        <div class="sc-num" style="color:${avgW5>=68?'#22c55e':avgW5>=52?'#f59e0b':'#ef4444'}">${avgW5??'–'}</div>
+        <div class="sc-lbl">WHO-5 trung bình</div><div style="font-size:.7rem;color:var(--muted)">Max 100</div>
+      </div></div>
+      <div class="sc"><div class="sc-icon yellow">🧘</div><div>
+        <div class="sc-num" style="color:${avgPSS<=13?'#22c55e':avgPSS<=26?'#f59e0b':'#ef4444'}">${avgPSS??'–'}</div>
+        <div class="sc-lbl">PSS trung bình</div><div style="font-size:.7rem;color:var(--muted)">Max 40</div>
+      </div></div>
+      <div class="sc"><div class="sc-icon ${lowW5>0?'yellow':'green'}">⚠️</div><div>
+        <div class="sc-num" style="color:${lowW5>0?'#ef4444':'#22c55e'}">${lowW5}</div>
+        <div class="sc-lbl">WHO-5 dưới 52</div><div style="font-size:.7rem;color:var(--muted)">Ngưỡng cần chú ý</div>
+      </div></div>
+    `;
+
+    if (total === 0) {
+      document.getElementById('emptyMsg').style.display = 'block';
+      document.getElementById('tblWrap').style.display  = 'none';
+      document.getElementById('chartsWrap').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('emptyMsg').style.display = 'none';
+    document.getElementById('tblWrap').style.display  = 'block';
+    document.getElementById('chartsWrap').style.display = 'block';
+
+    // Biểu đồ WHO-5
+    const w5Buckets = [0,0,0,0]; // <40, 40-51, 52-67, >=68
+    surveys.forEach(x => {
+      if (x.who5Score < 40) w5Buckets[0]++;
+      else if (x.who5Score < 52) w5Buckets[1]++;
+      else if (x.who5Score < 68) w5Buckets[2]++;
+      else w5Buckets[3]++;
+    });
+    dc('who5Chart');
+    charts.who5 = new Chart(document.getElementById('who5Chart'), {
+      type:'bar',
+      data:{ labels:['Thấp (<40)','Cần chú ý (40-51)','Trung bình (52-67)','Tốt (≥68)'],
+             datasets:[{ data:w5Buckets, backgroundColor:['#ef4444','#f97316','#f59e0b','#22c55e'], borderRadius:8 }] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'#f1f5f9'},ticks:{stepSize:1}}} }
+    });
+
+    // Biểu đồ PSS
+    const pBuckets = [0,0,0]; // <=13, 14-26, >26
+    surveys.forEach(x => {
+      if (x.pssScore <= 13) pBuckets[0]++;
+      else if (x.pssScore <= 26) pBuckets[1]++;
+      else pBuckets[2]++;
+    });
+    dc('pssChart');
+    charts.pss = new Chart(document.getElementById('pssChart'), {
+      type:'doughnut',
+      data:{ labels:['Thấp (0-13)','Trung bình (14-26)','Cao (>26)'],
+             datasets:[{ data:pBuckets, backgroundColor:['#22c55e','#f59e0b','#ef4444'], borderWidth:0 }] },
+      options:{ responsive:true, plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11}}}}, cutout:'60%' }
+    });
+
+    // Bảng chi tiết
+    document.getElementById('tblBody').innerHTML = surveys.map(x => {
+      const w5cls   = x.who5Score >= 68 ? '#22c55e' : x.who5Score >= 52 ? '#f59e0b' : '#ef4444';
+      const w5lbl   = x.who5Score >= 68 ? '✅ Tốt' : x.who5Score >= 52 ? '⚠️ Trung bình' : '🔴 Cần chú ý';
+      const pcls    = x.pssScore  <= 13 ? '#22c55e' : x.pssScore <= 26 ? '#f59e0b' : '#ef4444';
+      const plbl    = x.pssScore  <= 13 ? '✅ Thấp' : x.pssScore <= 26 ? '⚠️ Trung bình' : '🔴 Cao';
+      return `<tr>
+        <td><strong>${x.studentName}</strong></td>
+        <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:6px;font-size:.78rem">${x.class||'–'}</span></td>
+        <td style="color:var(--muted);font-size:.82rem">${fmtDate(x.date)}</td>
+        <td><strong style="color:${w5cls};font-size:1rem">${x.who5Score}</strong><span style="color:var(--muted);font-size:.78rem">/100</span></td>
+        <td><span style="background:${w5cls}22;color:${w5cls};padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:600">${w5lbl}</span></td>
+        <td><strong style="color:${pcls};font-size:1rem">${x.pssScore}</strong><span style="color:var(--muted);font-size:.78rem">/40</span></td>
+        <td><span style="background:${pcls}22;color:${pcls};padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:600">${plbl}</span></td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+loadPage();
+</script>
+</body>
+</html>

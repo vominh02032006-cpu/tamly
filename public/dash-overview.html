@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tổng quan – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="teacher-page">
+<div id="sidebar-mount"></div>
+<main class="t-main">
+  <div class="t-header">
+    <div><h1>📊 Tổng quan</h1><p class="t-subtitle" id="dashDate"></p></div>
+    <span style="font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:99px">🔄 Tự động cập nhật 30s</span>
+  </div>
+  <div class="t-body">
+    <div class="stat-cards" id="statCards">
+      <div class="sc"><div class="sc-icon blue">⏳</div><div><div class="sc-num">–</div><div class="sc-lbl">Đang tải…</div></div></div>
+    </div>
+    <div id="emptyMsg" style="display:none" class="t-empty">
+      <div class="t-empty-icon">📭</div>
+      <p>Chưa có học sinh nào check-in hôm nay.</p>
+      <a href="dash-manage.html" class="btn-primary">Tạo tài khoản học sinh →</a>
+    </div>
+    <div id="chartsWrap" style="display:none">
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-card-title">😊 Phân phối cảm xúc hôm nay</div><canvas id="emoDist" height="240"></canvas></div>
+        <div class="chart-card"><div class="chart-card-title">🧘 Phân phối mức stress</div><canvas id="stressDist" height="240"></canvas></div>
+      </div>
+      <div class="chart-card full" style="margin-top:14px">
+        <div class="chart-card-title">💚 MHI trung bình theo ngày (7 ngày)</div>
+        <canvas id="mhiMini" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+</main>
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+let ch = {};
+function dc(id) { if (ch[id]) { ch[id].destroy(); delete ch[id]; } }
+
+async function loadPage() {
+  try {
+    const ov = await api('GET', '/api/dashboard/overview');
+    const badge = document.getElementById('alertBadge');
+    if (badge) badge.textContent = ov.alertsToday > 0 ? ov.alertsToday : '';
+
+    document.getElementById('statCards').innerHTML = `
+      <div class="sc"><div class="sc-icon blue">🎒</div><div><div class="sc-num">${ov.totalStudents}</div><div class="sc-lbl">Học sinh</div></div></div>
+      <div class="sc"><div class="sc-icon green">✅</div><div><div class="sc-num">${ov.checkinToday}</div><div class="sc-lbl">Check-in hôm nay</div><div style="font-size:.7rem;color:var(--muted)">${ov.checkinRate}% tổng số</div></div></div>
+      <div class="sc" onclick="location.href='dash-alerts.html'" style="cursor:pointer"><div class="sc-icon yellow">⚠️</div><div><div class="sc-num" style="color:${ov.alertsToday>0?'#ef4444':'inherit'}">${ov.alertsToday}</div><div class="sc-lbl">Cần quan tâm</div></div></div>
+      <div class="sc"><div class="sc-icon purple">💚</div><div><div class="sc-num" style="color:${ov.avgMHI>=70?'#22c55e':ov.avgMHI>=40?'#f59e0b':'#ef4444'}">${ov.avgMHI??'–'}</div><div class="sc-lbl">MHI trung bình</div></div></div>
+      <div class="sc"><div class="sc-icon blue2">🕐</div><div><div class="sc-num" style="font-size:1rem">${new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</div><div class="sc-lbl">Cập nhật lúc</div></div></div>
+    `;
+
+    if (ov.checkinToday === 0) {
+      document.getElementById('emptyMsg').style.display = 'block';
+      document.getElementById('chartsWrap').style.display = 'none';
+      return;
+    }
+    document.getElementById('emptyMsg').style.display = 'none';
+    document.getElementById('chartsWrap').style.display = 'block';
+    await loadCharts();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function loadCharts() {
+  const [students, trends] = await Promise.all([
+    api('GET', '/api/dashboard/students'),
+    api('GET', '/api/dashboard/trends')
+  ]);
+
+  const today  = new Date().toDateString();
+  const todayD = students.filter(s => s.lastCheckin && new Date(s.lastCheckin).toDateString() === today).map(s => s.latestData).filter(Boolean);
+
+  const emoCnt = [0,0,0,0,0,0];
+  todayD.forEach(d => { if (d.emotion >= 0 && d.emotion <= 5) emoCnt[d.emotion]++; });
+  dc('emoDist');
+  ch.emo = new Chart(document.getElementById('emoDist'), {
+    type:'bar',
+    data:{ labels:['😞','😰','😔','😐','😊','😄'], datasets:[{ data:emoCnt, backgroundColor:['#991b1b','#ef4444','#f97316','#f59e0b','#84cc16','#22c55e'], borderRadius:6 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'#f1f5f9'},ticks:{stepSize:1}}} }
+  });
+
+  let lo=0,mi=0,hi=0;
+  todayD.forEach(d => { if(d.stressLevel<=3)lo++; else if(d.stressLevel<=6)mi++; else hi++; });
+  dc('stressDist');
+  ch.str = new Chart(document.getElementById('stressDist'), {
+    type:'doughnut',
+    data:{ labels:['Thấp (0-3)','Trung bình (4-6)','Cao (7-10)'], datasets:[{ data:[lo,mi,hi], backgroundColor:['#22c55e','#f59e0b','#ef4444'], borderWidth:0 }] },
+    options:{ responsive:true, plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11}}}}, cutout:'65%' }
+  });
+
+  dc('mhiMini');
+  ch.mhi = new Chart(document.getElementById('mhiMini'), {
+    type:'line',
+    data:{ labels:trends.map(t=>t.date), datasets:[
+      { label:'MHI TB', data:trends.map(t=>t.avgMHI), borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:true, tension:0.4, pointRadius:4, spanGaps:true, yAxisID:'y' },
+      { label:'Số HS', data:trends.map(t=>t.count), borderColor:'#94a3b8', borderDash:[4,4], fill:false, tension:0, pointRadius:3, spanGaps:true, yAxisID:'y2' }
+    ]},
+    options:{ responsive:true, plugins:{legend:{display:true,labels:{font:{size:11}}}}, scales:{
+      x:{grid:{display:false}},
+      y:{min:0,max:100,grid:{color:'#f1f5f9'},title:{display:true,text:'MHI'}},
+      y2:{position:'right',grid:{display:false},title:{display:true,text:'Số HS'}}
+    }}
+  });
+}
+
+loadPage();
+setInterval(loadPage, 30000);
+</script>
+</body>
+</html>

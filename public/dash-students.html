@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Học sinh – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="teacher-page">
+<div id="sidebar-mount"></div>
+<main class="t-main">
+  <div class="t-header">
+    <div><h1>🎒 Danh sách học sinh</h1><p class="t-subtitle" id="dashDate"></p></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-icon" onclick="loadPage()">🔄 Làm mới</button>
+      <button class="btn-primary" style="padding:9px 18px;font-size:.85rem" onclick="exportCSV()">📥 Xuất CSV</button>
+    </div>
+  </div>
+  <div class="t-body">
+    <div class="t-toolbar">
+      <input type="text" class="t-search" id="searchInput" placeholder="🔍 Tìm theo tên, mã học sinh, lớp…" oninput="filterTable(this.value)"/>
+      <select id="filterStatus" onchange="filterTable()" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Be Vietnam Pro',sans-serif;font-size:.88rem;outline:none">
+        <option value="all">Tất cả trạng thái</option>
+        <option value="ok">✅ Ổn định</option>
+        <option value="warn">⚠️ Cần chú ý</option>
+        <option value="danger">🔴 Khẩn cấp</option>
+        <option value="none">📭 Chưa check-in</option>
+      </select>
+    </div>
+    <div id="emptyMsg" style="display:none" class="t-empty">
+      <div class="t-empty-icon">🎒</div>
+      <p>Chưa có học sinh nào. Tạo tài khoản trong mục Quản lý HS.</p>
+      <a href="dash-manage.html" class="btn-primary">Tạo tài khoản →</a>
+    </div>
+    <div class="tbl-wrap" id="tblWrap" style="display:none">
+      <table class="data-tbl">
+        <thead><tr><th>Mã HS</th><th>Họ tên</th><th>Lớp</th><th>Check-in</th><th>Gần nhất</th><th>Cảm xúc</th><th>Ngủ</th><th>Stress</th><th>MHI</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <div id="countInfo" style="font-size:.82rem;color:var(--muted);margin-top:10px"></div>
+  </div>
+</main>
+<div class="modal-overlay" id="stuModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('stuModal').classList.remove('open')">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+let allStudents = [];
+
+async function loadPage() {
+  try {
+    allStudents = await api('GET', '/api/dashboard/students');
+    renderTable(allStudents);
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function getStatus(s) {
+  const d = s.latestData;
+  if (!d) return 'none';
+  if (!d.alerts?.length) return 'ok';
+  return d.alerts.some(a => a.level === 'danger') ? 'danger' : 'warn';
+}
+
+function renderTable(list) {
+  const empty = document.getElementById('emptyMsg');
+  const wrap  = document.getElementById('tblWrap');
+  const info  = document.getElementById('countInfo');
+  empty.style.display = list.length ? 'none' : 'block';
+  wrap.style.display  = list.length ? 'block' : 'none';
+  info.textContent    = list.length ? `Hiển thị ${list.length} học sinh` : '';
+  if (!list.length) return;
+
+  const today = new Date().toDateString();
+  document.getElementById('tblBody').innerHTML = list.map(s => {
+    const d      = s.latestData;
+    const em     = d ? (EMOTION_MAP[d.emotion] || EMOTION_MAP[3]) : null;
+    const mCls   = d ? (d.mhi>=70?'high':d.mhi>=40?'mid':'low') : '';
+    const isToday = s.lastCheckin && new Date(s.lastCheckin).toDateString() === today;
+    const st     = getStatus(s);
+    const stM    = { ok:['✅ Ổn định','ok'], warn:['⚠️ Chú ý','warn'], danger:['🔴 Khẩn','alert'], none:['–',''] };
+    const [lbl, cls] = stM[st];
+    return `<tr>
+      <td><code style="background:#f1f5f9;padding:2px 7px;border-radius:5px">${s.username}</code></td>
+      <td><strong>${s.name}</strong></td>
+      <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:6px;font-size:.78rem">${s.class||'–'}</span></td>
+      <td style="text-align:center">${s.totalCheckins}</td>
+      <td>${s.lastCheckin?(isToday?'<span class="today-tag">Hôm nay</span>':fmtDate(s.lastCheckin)):'<span class="no-checkin">Chưa check-in</span>'}</td>
+      <td>${em?`${em.emoji} ${em.label}`:'–'}</td>
+      <td>${d?d.sleepHours+'h':'–'}</td>
+      <td>${d?d.stressLevel+'/10':'–'}</td>
+      <td>${d?`<span class="mhi-badge ${mCls}">${d.mhi}</span>`:'–'}</td>
+      <td>${cls?`<span class="status-badge ${cls}">${lbl}</span>`:lbl}</td>
+      <td>
+        <div style="display:flex;gap:5px">
+          <button class="btn-detail" onclick="openModal('${s.id}')">Chi tiết</button>
+          <button style="padding:6px 10px;background:#e0e7ff;color:#4338ca;border:none;border-radius:8px;font-family:'Be Vietnam Pro',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer" onclick="openEdit('${s.id}','${s.name.replace(/'/g,"\\'")}','${(s.class||'').replace(/'/g,"\\'")}')">✏️</button>
+          <button style="padding:6px 10px;background:#fee2e2;color:#991b1b;border:none;border-radius:8px;font-family:'Be Vietnam Pro',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer" onclick="confirmDelete('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.totalCheckins}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTable(q) {
+  const query  = (q !== undefined ? q : document.getElementById('searchInput').value).toLowerCase();
+  const status = document.getElementById('filterStatus').value;
+  renderTable(allStudents.filter(s => {
+    const mQ = !query || s.name.toLowerCase().includes(query) || s.username.toLowerCase().includes(query) || (s.class||'').toLowerCase().includes(query);
+    const mS = status === 'all' || getStatus(s) === status;
+    return mQ && mS;
+  }));
+}
+
+function exportCSV() {
+  if (!allStudents.length) { showToast('Không có dữ liệu', 'error'); return; }
+  const rows = [['Mã HS','Họ tên','Lớp','Check-in','Gần nhất','Cảm xúc','Ngủ','Stress','MHI','Trạng thái']];
+  allStudents.forEach(s => {
+    const d = s.latestData;
+    const stM = { ok:'Ổn định', warn:'Chú ý', danger:'Khẩn cấp', none:'Chưa check-in' };
+    rows.push([s.username, s.name, s.class||'', s.totalCheckins,
+      s.lastCheckin?fmtDate(s.lastCheckin):'Chưa check-in',
+      d?(EMOTION_MAP[d.emotion]?.label||''):'', d?d.sleepHours+'h':'',
+      d?d.stressLevel+'/10':'', d?d.mhi:'', stM[getStatus(s)]||'']);
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})),
+    download: `hocsinh_${new Date().toLocaleDateString('vi-VN').replace(/\//g,'-')}.csv`
+  });
+  a.click();
+  showToast('Đã xuất CSV!', 'success');
+}
+
+async function openModal(id) {
+  const modal   = document.getElementById('stuModal');
+  const content = document.getElementById('modalContent');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">⏳ Đang tải…</div>';
+  modal.classList.add('open');
+  try {
+    const { student: s, checkins } = await api('GET', `/api/dashboard/student/${id}`);
+    const latest = checkins[0];
+    if (!latest) {
+      content.innerHTML = `<div class="modal-name">${s.name}</div><div class="t-empty"><div class="t-empty-icon">📭</div><p>Chưa có dữ liệu check-in.</p></div>`;
+      return;
+    }
+    const em    = EMOTION_MAP[latest.emotion]||EMOTION_MAP[3];
+    const bd    = getBreakdown(latest);
+    const st    = mhiStatus(latest.mhi);
+    const mCls  = latest.mhi>=70?'high':latest.mhi>=40?'mid':'low';
+    const color = mhiColor(latest.mhi);
+
+    let aiHtml = '';
+    if (latest.aiAnalysis) {
+      try {
+        const p = JSON.parse(latest.aiAnalysis.replace(/```json|```/g,'').trim());
+        aiHtml = (p.tips||[]).map(t=>`<div style="background:#f8fafc;border-radius:8px;padding:9px 12px;font-size:.84rem;margin-bottom:5px">${t.icon||'💡'} ${t.text}</div>`).join('');
+      } catch { aiHtml = `<div style="background:#f8fafc;border-radius:8px;padding:9px 12px;font-size:.84rem">${latest.aiAnalysis.slice(0,300)}</div>`; }
+    }
+
+    const aHtml = latest.alerts?.length
+      ? latest.alerts.map(a=>`<span class="ar ${a.level}">${a.level==='danger'?'🔴':'🟡'} ${a.msg}</span>`).join('')
+      : '<span style="color:#22c55e;font-size:.84rem">✅ Không có cảnh báo</span>';
+
+    const hRows = checkins.slice(0,5).map(h=>{
+      const hE = EMOTION_MAP[h.emotion]||EMOTION_MAP[3];
+      const hC = h.mhi>=70?'high':h.mhi>=40?'mid':'low';
+      return `<tr><td style="padding:6px 10px">${fmtDate(h.date)}</td><td style="padding:6px 10px">${hE.emoji}</td><td style="padding:6px 10px">${h.sleepHours}h</td><td style="padding:6px 10px">${h.stressLevel}/10</td><td style="padding:6px 10px"><span class="mhi-badge ${hC}" style="font-size:.75rem">${h.mhi}</span></td></tr>`;
+    }).join('');
+
+    content.innerHTML = `
+      <div class="modal-name">${s.name}</div>
+      <div class="modal-meta">${s.username} · Lớp ${s.class||'–'} · <strong>${checkins.length}</strong> lần check-in</div>
+      <div style="display:flex;gap:14px;align-items:center;background:#f8fafc;border-radius:12px;padding:14px;margin:14px 0">
+        <div style="text-align:center;min-width:56px"><div style="font-size:2rem;font-weight:800;color:${color};line-height:1">${latest.mhi}</div><div style="font-size:.68rem;color:var(--muted)">MHI</div></div>
+        <div><span class="mhi-badge ${mCls}">${st.label}</span><div style="font-size:.82rem;color:var(--muted);margin-top:5px">${fmtDate(latest.date)}</div></div>
+      </div>
+      <div class="modal-sec">📊 Điểm thành phần</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        ${bd.map(b=>`<div style="background:#f8fafc;border-radius:10px;padding:10px;text-align:center"><div>${b.icon}</div><div style="font-size:.68rem;color:var(--muted);margin:2px 0">${b.label}</div><div style="font-size:1.05rem;font-weight:800;color:${b.score>=75?'#22c55e':b.score>=50?'#f59e0b':'#ef4444'}">${b.score}</div></div>`).join('')}
+      </div>
+      <div class="modal-sec">📋 Dữ liệu gần nhất</div>
+      <div class="modal-row"><span>${em.emoji} Cảm xúc</span><span>${em.label}</span></div>
+      <div class="modal-row"><span>😴 Giấc ngủ</span><span>${latest.sleepHours}h · ${QUALITY_MAP[latest.sleepQuality]||'–'}</span></div>
+      <div class="modal-row"><span>📱 Mạng xã hội</span><span>${latest.socialHours}h</span></div>
+      <div class="modal-row"><span>📚 Áp lực</span><span>Mức ${latest.studyPressure}/4</span></div>
+      <div class="modal-row"><span>🧘 Stress</span><span>${latest.stressLevel}/10</span></div>
+      <div class="modal-sec">⚠️ Cảnh báo</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">${aHtml}</div>
+      ${latest.shareText?`<div class="modal-sec">💬 Chia sẻ</div><div class="modal-share">"${latest.shareText}"</div>`:''}
+      <div class="modal-sec">🤖 AI phân tích</div>
+      ${aiHtml||'<div style="color:#94a3b8;font-size:.84rem">Chưa có phân tích AI.</div>'}
+      <div class="modal-sec">📅 5 lần check-in gần nhất</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f8fafc"><th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Ngày</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">Cảm xúc</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">Ngủ</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">Stress</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">MHI</th></tr></thead><tbody>${hRows}</tbody></table>
+      <div style="background:#fffbeb;border-radius:8px;padding:9px 12px;font-size:.78rem;color:#78350f;margin-top:14px">⚠️ Thông tin chỉ mang tính tham khảo.</div>
+    `;
+  } catch(e) { content.innerHTML = `<div style="text-align:center;padding:32px;color:#ef4444">❌ ${e.message}</div>`; }
+}
+
+loadPage();
+</script>
+
+<!-- Modal sửa học sinh -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" style="max-width:440px">
+    <button class="modal-close" onclick="document.getElementById('editModal').classList.remove('open')">✕</button>
+    <div class="modal-name">✏️ Chỉnh sửa học sinh</div>
+    <div class="modal-meta" style="margin-bottom:16px">Cập nhật tên và lớp học</div>
+    <input type="hidden" id="editId"/>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:7px">Họ và tên</label>
+      <input type="text" id="editName" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Be Vietnam Pro',sans-serif;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:7px">Lớp</label>
+      <input type="text" id="editClass" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Be Vietnam Pro',sans-serif;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'"/>
+    </div>
+    <button onclick="saveEdit()" style="width:100%;padding:13px;background:#6366f1;color:#fff;border:none;border-radius:12px;font-family:'Be Vietnam Pro',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer">Lưu thay đổi</button>
+    <div id="editResult" style="display:none;margin-top:10px;border-radius:9px;padding:10px 14px;font-size:.84rem"></div>
+  </div>
+</div>
+
+<script>
+// ── Sửa học sinh ──────────────────────────────────────────────────
+function openEdit(id, name, cls) {
+  document.getElementById('editId').value    = id;
+  document.getElementById('editName').value  = name;
+  document.getElementById('editClass').value = cls;
+  document.getElementById('editResult').style.display = 'none';
+  document.getElementById('editModal').classList.add('open');
+}
+
+async function saveEdit() {
+  const id   = document.getElementById('editId').value;
+  const name = document.getElementById('editName').value.trim();
+  const cls  = document.getElementById('editClass').value.trim();
+  const resEl = document.getElementById('editResult');
+  if (!name || !cls) {
+    resEl.style.cssText = 'display:block;background:#fee2e2;color:#991b1b;border-radius:9px;padding:10px 14px;font-size:.84rem;margin-top:10px';
+    resEl.textContent = '❌ Vui lòng điền đầy đủ!'; return;
+  }
+  try {
+    await api('PUT', `/api/auth/student/${id}`, { name, studentClass: cls });
+    resEl.style.cssText = 'display:block;background:#dcfce7;color:#166534;border-radius:9px;padding:10px 14px;font-size:.84rem;margin-top:10px';
+    resEl.textContent = '✅ Cập nhật thành công!';
+    setTimeout(() => { document.getElementById('editModal').classList.remove('open'); loadPage(); }, 900);
+  } catch(e) {
+    resEl.style.cssText = 'display:block;background:#fee2e2;color:#991b1b;border-radius:9px;padding:10px 14px;font-size:.84rem;margin-top:10px';
+    resEl.textContent = '❌ ' + e.message;
+  }
+}
+
+// ── Xóa học sinh ──────────────────────────────────────────────────
+async function confirmDelete(id, name, total) {
+  const msg = +total > 0
+    ? `Xóa tài khoản "${name}"?\n⚠️ Tất cả ${total} dữ liệu check-in sẽ bị xóa vĩnh viễn!`
+    : `Xóa tài khoản "${name}"?`;
+  if (!confirm(msg)) return;
+  try {
+    await api('DELETE', `/api/auth/student/${id}`);
+    showToast(`🗑️ Đã xóa tài khoản "${name}"`, 'success');
+    loadPage(); // reload lại bảng
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+</script>
+</body>
+</html>

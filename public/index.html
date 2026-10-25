@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MoodTok – Theo dõi sức khỏe tinh thần học sinh</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/landing.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="landing-page">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo"><span class="logo-icon">🧠</span><span>MoodTok</span></div>
+      <div class="nav-links">
+        <a href="about.html">Giới thiệu</a>
+        <a href="features.html">Tính năng</a>
+        <a href="how.html">Cách dùng</a>
+        <span id="nav-right"><a href="login.html" class="btn-nav">Đăng nhập</a></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">🎓 Dành cho học sinh THPT</div>
+      <h1 class="hero-title">Theo dõi <span class="highlight">sức khỏe tinh thần</span><br/>của bạn mỗi ngày</h1>
+      <p class="hero-desc">MoodTok giúp bạn ghi nhận cảm xúc, giấc ngủ, thời gian mạng xã hội và mức độ stress hằng ngày — để hiểu bản thân hơn và nhận hỗ trợ kịp thời.</p>
+      <div class="hero-actions">
+        <a id="hero-cta" href="login.html" class="btn-primary">Bắt đầu Check-in ✨</a>
+        <a href="about.html" class="btn-ghost">Tìm hiểu thêm →</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num">6</span><span class="stat-label">yếu tố theo dõi</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">WHO-5</span><span class="stat-label">thang đo chuẩn hóa</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">AI</span><span class="stat-label">phân tích thật</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="phone-mockup">
+        <div class="phone-screen">
+          <div class="mock-header"><span class="mock-logo">🧠 MoodTok</span><span class="mock-time">08:30</span></div>
+          <div class="mock-question">Hôm nay bạn<br/>cảm thấy thế nào?</div>
+          <div class="mock-emojis">
+            <span class="mock-emoji active">😊</span>
+            <span class="mock-emoji">😐</span>
+            <span class="mock-emoji">😔</span>
+            <span class="mock-emoji">😰</span>
+            <span class="mock-emoji">😄</span>
+          </div>
+          <div class="mock-bar"><div class="mock-bar-label">Giấc ngủ</div><div class="mock-bar-track"><div class="mock-bar-fill" style="width:70%"></div></div></div>
+          <div class="mock-bar"><div class="mock-bar-label">Stress</div><div class="mock-bar-track"><div class="mock-bar-fill stress" style="width:40%"></div></div></div>
+          <div class="mock-btn">Hoàn tất Check-in ✓</div>
+        </div>
+      </div>
+      <div class="float-card card-1"><span>😴</span> Ngủ 7.5 giờ</div>
+      <div class="float-card card-2"><span>📱</span> Mạng xã hội: 2h</div>
+      <div class="float-card card-3"><span>📈</span> Tuần này ổn định</div>
+    </div>
+  </section>
+
+  <!-- QUICK NAV CARDS -->
+  <section style="padding:60px 0; background:white">
+    <div class="container">
+      <h2 class="section-title" style="text-align:center; margin-bottom:32px">Khám phá MoodTok</h2>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px">
+        <a href="about.html" style="text-decoration:none">
+          <div class="feature-item" style="cursor:pointer; border:2px solid var(--border); transition:all .2s" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="feature-icon">🔬</div>
+            <div>
+              <h3>Giới thiệu</h3>
+              <p>6 yếu tố theo dõi, cách tính MHI, mô hình nghiên cứu và bảng điểm chi tiết.</p>
+              <span style="color:#6366f1; font-size:.85rem; font-weight:600">Xem chi tiết →</span>
+            </div>
+          </div>
+        </a>
+        <a href="features.html" style="text-decoration:none">
+          <div class="feature-item" style="cursor:pointer; border:2px solid var(--border); transition:all .2s" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="feature-icon">⚡</div>
+            <div>
+              <h3>Tính năng</h3>
+              <p>Check-in hằng ngày, AI Gemini phân tích, biểu đồ xu hướng, cảnh báo sớm.</p>
+              <span style="color:#6366f1; font-size:.85rem; font-weight:600">Xem chi tiết →</span>
+            </div>
+          </div>
+        </a>
+        <a href="how.html" style="text-decoration:none">
+          <div class="feature-item" style="cursor:pointer; border:2px solid var(--border); transition:all .2s" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="feature-icon">📖</div>
+            <div>
+              <h3>Cách dùng</h3>
+              <p>Hướng dẫn từng bước đăng ký, check-in, xem kết quả và sử dụng AI chat.</p>
+              <span style="color:#6366f1; font-size:.85rem; font-weight:600">Xem chi tiết →</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <section class="disclaimer-section">
+    <div class="container">
+      <div class="disclaimer-box">
+        <span>⚠️</span>
+        <p><strong>Lưu ý quan trọng:</strong> MoodTok chỉ hỗ trợ theo dõi và nhận diện dấu hiệu cần quan tâm. Hệ thống không chẩn đoán bệnh lý tâm thần và không thay thế chuyên gia tâm lý hoặc nhân viên y tế. Kết quả chỉ mang tính tham khảo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>Bắt đầu theo dõi sức khỏe tinh thần hôm nay</h2>
+      <p>Chỉ mất vài phút mỗi ngày — hiểu bản thân hơn, sống tốt hơn.</p>
+      <a id="cta-btn" href="login.html" class="btn-primary btn-large">Bắt đầu ngay →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">🧠 MoodTok</div>
+      <p>Trường Phổ thông Dân tộc Nội trú THPT Hậu Giang</p>
+      <p class="footer-note">Hệ thống theo dõi và cảnh báo sớm sức khỏe tinh thần học sinh THPT</p>
+    </div>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script>
+    // Cập nhật CTA button theo trạng thái đăng nhập
+    const u = (() => { try { return JSON.parse(localStorage.getItem('mt_user')); } catch { return null; } })();
+    if (u) {
+      const cta = document.getElementById('cta-btn');
+      if (cta) { cta.href = u.role === 'teacher' ? 'dashboard.html' : 'checkin.html'; cta.textContent = 'Vào ứng dụng →'; }
+    }
+  </script>
+</body>
+</html>

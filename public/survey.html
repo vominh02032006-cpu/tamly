@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Khảo sát – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/checkin.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="checkin-page">
+
+<header class="app-header">
+  <a href="/" class="header-logo">🧠 MoodTok</a>
+  <div class="header-right">
+    <a href="result.html" class="btn-skip">← Quay lại</a>
+    <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+  </div>
+</header>
+
+<main class="checkin-main">
+  <div class="checkin-wrapper">
+
+    <div class="step-panel active" id="who5-panel">
+      <div class="step-tag">WHO-5 Well-being Index</div>
+      <h2 class="step-question">Khảo sát sức khỏe tinh thần WHO-5 🌿</h2>
+      <p class="step-hint">Trong <strong>2 tuần vừa qua</strong>, bạn cảm thấy như thế nào?<br/>0 = Không bao giờ → 5 = Luôn luôn</p>
+      <div class="survey-questions" id="who5-questions"></div>
+      <div class="step-nav"><button class="btn-next" id="who5-next" disabled onclick="goSurvey('pss')">Tiếp theo – PSS →</button></div>
+    </div>
+
+    <div class="step-panel" id="pss-panel">
+      <div class="step-tag">Perceived Stress Scale (PSS-10)</div>
+      <h2 class="step-question">Đánh giá mức độ stress 🧘</h2>
+      <p class="step-hint">Trong <strong>1 tháng vừa qua</strong>, bạn thường xuyên cảm thấy như thế nào?<br/>0 = Không bao giờ → 4 = Rất thường xuyên</p>
+      <div class="survey-questions" id="pss-questions"></div>
+      <div class="step-nav">
+        <button class="btn-back" onclick="goSurvey('who5')">← Quay lại</button>
+        <button class="btn-next" id="pss-next" disabled onclick="submitSurvey()">Gửi kết quả ✅</button>
+      </div>
+    </div>
+
+    <div class="step-panel" id="result-panel">
+      <div class="step-tag">Kết quả khảo sát</div>
+      <h2 class="step-question">Kết quả của bạn 📊</h2>
+      <div class="survey-results" id="surveyResults"></div>
+      <div class="survey-disclaimer"><span>⚠️</span><p>Kết quả chỉ mang tính tham khảo. Không thay thế đánh giá của chuyên gia.</p></div>
+      <div class="step-nav" style="justify-content:center">
+        <a href="result.html" class="btn-next">Xem biểu đồ cá nhân →</a>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/survey.js"></script>
+</body>
+</html>

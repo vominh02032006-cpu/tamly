@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tài khoản – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* Shared styles */
+    .profile-card { background:white;border-radius:20px;padding:28px;box-shadow:var(--card-shadow);margin-bottom:20px; }
+    .profile-avatar { width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:white;flex-shrink:0; }
+    .profile-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:.9rem; }
+    .profile-row:last-child { border:none; }
+    .profile-row label { color:var(--text-muted); }
+    .profile-row strong { font-weight:600; }
+
+    .pw-group { margin-bottom:16px; }
+    .pw-group label { display:block;font-size:.86rem;font-weight:600;margin-bottom:7px; }
+    .pw-wrap { position:relative;display:flex;align-items:center; }
+    .pw-wrap input { width:100%;padding:12px 40px 12px 40px;border:2px solid var(--border);border-radius:10px;font-family:'Be Vietnam Pro',sans-serif;font-size:.92rem;transition:border-color .2s;background:#f8fafc; }
+    .pw-wrap input:focus { outline:none;border-color:var(--primary);background:#fff; }
+    .pw-icon { position:absolute;left:14px;font-size:.95rem;pointer-events:none; }
+    .pw-eye  { position:absolute;right:12px;background:none;border:none;cursor:pointer;font-size:.95rem;opacity:.5; }
+    .pw-eye:hover { opacity:1; }
+    .pw-msg  { border-radius:9px;padding:10px 14px;font-size:.84rem;margin-top:10px;display:none; }
+    .pw-msg.ok  { background:#dcfce7;color:#166534; }
+    .pw-msg.err { background:#fee2e2;color:#991b1b; }
+
+    .btn-save { width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-family:'Be Vietnam Pro',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s; }
+    .btn-save:hover { background:#4f46e5; }
+    .btn-save:disabled { opacity:.5;cursor:not-allowed; }
+  </style>
+</head>
+<body>
+<!-- Sidebar (chỉ hiện cho giáo viên) -->
+<div id="sidebar-mount"></div>
+
+<!-- Header (chỉ hiện cho học sinh) -->
+<div id="student-header-mount"></div>
+
+<div class="profile-wrap" id="profileWrap">
+
+  <!-- THÔNG TIN TÀI KHOẢN -->
+  <div class="profile-card">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div class="profile-avatar"><span id="avatarIcon">🎒</span></div>
+      <div>
+        <div style="font-size:1.25rem;font-weight:700" id="profileName">–</div>
+        <div style="font-size:.85rem;color:var(--text-muted)" id="profileSub">–</div>
+      </div>
+    </div>
+    <div class="profile-row"><label>Tên đăng nhập</label><strong id="profileUsername">–</strong></div>
+    <div class="profile-row"><label>Vai trò</label><strong id="profileRoleText">–</strong></div>
+    <div class="profile-row" id="classRow" style="display:none"><label>Lớp</label><strong id="profileClass">–</strong></div>
+  </div>
+
+  <!-- ĐỔI MẬT KHẨU -->
+  <div class="profile-card">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:18px">🔑 Đổi mật khẩu</h3>
+    <div class="pw-group">
+      <label>Mật khẩu hiện tại</label>
+      <div class="pw-wrap"><span class="pw-icon">🔑</span><input type="password" id="oldPass" placeholder="Nhập mật khẩu hiện tại" autocomplete="current-password"/><button class="pw-eye" onclick="togglePwd('oldPass')">👁</button></div>
+    </div>
+    <div class="pw-group">
+      <label>Mật khẩu mới</label>
+      <div class="pw-wrap"><span class="pw-icon">🔒</span><input type="password" id="newPass" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"/><button class="pw-eye" onclick="togglePwd('newPass')">👁</button></div>
+    </div>
+    <div class="pw-group" style="margin-bottom:18px">
+      <label>Xác nhận mật khẩu mới</label>
+      <div class="pw-wrap"><span class="pw-icon">🔒</span><input type="password" id="newPass2" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password"/><button class="pw-eye" onclick="togglePwd('newPass2')">👁</button></div>
+    </div>
+    <button class="btn-save" id="saveBtn" onclick="changePassword()">Lưu mật khẩu mới</button>
+    <div id="pwMsg" class="pw-msg"></div>
+  </div>
+
+  <!-- THỐNG KÊ NHANH (chỉ học sinh) -->
+  <div id="statsCard" style="display:none" class="profile-card">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px">📊 Thống kê của bạn</h3>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="statsGrid"></div>
+    <a href="result.html" style="display:block;text-align:center;margin-top:16px;color:var(--primary);font-size:.88rem;font-weight:600">Xem biểu đồ chi tiết →</a>
+  </div>
+
+</div><!-- end profile-wrap -->
+
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Cho phép cả học sinh lẫn giáo viên vào trang này
+  const tok  = getToken();
+  const user = getUser();
+  if (!tok || !user) { window.location.href = 'login.html'; return; }
+
+  const isTeacher = user.role === 'teacher';
+  const wrap = document.getElementById('profileWrap');
+
+  if (isTeacher) {
+    // Giáo viên: dùng layout có sidebar
+    document.body.classList.add('teacher-page');
+    document.getElementById('profileWrap').style.cssText = 'margin-left:230px; padding:32px 40px 48px; max-width:680px;';
+    document.title = 'Tài khoản – MoodTok';
+  } else {
+    // Học sinh: không sidebar, centered
+    document.body.style.background = 'linear-gradient(135deg,#f0f4ff,#faf5ff)';
+    document.getElementById('profileWrap').style.cssText = 'max-width:520px; margin:0 auto; padding:32px 24px 48px;';
+    document.getElementById('student-header-mount').innerHTML = `
+      <header style="position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <a href="/" style="font-size:1.1rem;font-weight:700;color:#6366f1;text-decoration:none">🧠 MoodTok</a>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.85rem;color:#64748b">${user.name}</span>
+          <a href="result.html" style="font-size:.85rem;color:#64748b;text-decoration:none">← Quay lại</a>
+          <button onclick="logout()" style="background:none;border:1px solid #e2e8f0;padding:6px 14px;border-radius:8px;font-size:.84rem;cursor:pointer;color:#64748b;font-family:'Be Vietnam Pro',sans-serif">Đăng xuất</button>
+        </div>
+      </header>`;
+  }
+
+  // Điền thông tin
+  document.getElementById('profileName').textContent     = user.name;
+  // username có thể chưa có trong token cũ → fetch từ server nếu cần
+  const usernameDisplay = user.username || await fetchUsername();
+  document.getElementById('profileUsername').textContent = usernameDisplay || '–';
+  document.getElementById('avatarIcon').textContent      = isTeacher ? '👨‍🏫' : '🎒';
+  document.getElementById('profileRoleText').textContent = isTeacher ? '👨‍🏫 Giáo viên / Tư vấn' : '🎒 Học sinh';
+  document.getElementById('profileSub').textContent      = isTeacher ? 'Cán bộ tư vấn' : `Lớp ${user.class||'–'}`;
+
+  if (!isTeacher && user.class) {
+    document.getElementById('classRow').style.display = 'flex';
+    document.getElementById('profileClass').textContent = user.class;
+  }
+
+  // Thống kê học sinh
+  if (!isTeacher) {
+    document.getElementById('statsCard').style.display = 'block';
+    try {
+      const history = await api('GET', '/api/checkin/my');
+      const total   = history.length;
+      const avgMHI  = total ? Math.round(history.reduce((s,h)=>s+h.mhi,0)/total) : 0;
+      const latest  = history[0];
+      document.getElementById('statsGrid').innerHTML = `
+        <div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px">
+          <div style="font-size:1.6rem;font-weight:800;color:#6366f1">${total}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Lần check-in</div>
+        </div>
+        <div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px">
+          <div style="font-size:1.6rem;font-weight:800;color:${avgMHI>=70?'#22c55e':avgMHI>=40?'#f59e0b':'#ef4444'}">${avgMHI||'–'}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">MHI trung bình</div>
+        </div>
+        <div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px">
+          <div style="font-size:1.6rem;font-weight:800;color:#8b5cf6">${latest?(EMOTION_MAP[latest.emotion]?.emoji||'–'):'–'}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Check-in gần nhất</div>
+        </div>`;
+    } catch {}
+  }
+});
+
+async function fetchUsername() {
+  try {
+    const me = await api('GET', '/api/auth/me');
+    // Cập nhật luôn vào localStorage để lần sau có sẵn
+    const user = getUser();
+    if (user) {
+      user.username = me.username;
+      localStorage.setItem('mt_user', JSON.stringify(user));
+    }
+    return me.username;
+  } catch { return null; }
+}
+
+function togglePwd(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+async function changePassword() {
+  const oldP = document.getElementById('oldPass').value;
+  const newP = document.getElementById('newPass').value;
+  const newP2 = document.getElementById('newPass2').value;
+  const msg  = document.getElementById('pwMsg');
+  msg.style.display = 'none';
+
+  if (!oldP || !newP || !newP2) { showMsg('Vui lòng điền đầy đủ.', 'err'); return; }
+  if (newP.length < 6)          { showMsg('Mật khẩu mới phải có ít nhất 6 ký tự.', 'err'); return; }
+  if (newP !== newP2)            { showMsg('Mật khẩu xác nhận không khớp.', 'err'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = '⏳ Đang lưu…';
+
+  try {
+    await api('POST', '/api/auth/change-password', { oldPassword: oldP, newPassword: newP });
+    showMsg('✅ Đổi mật khẩu thành công!', 'ok');
+    document.getElementById('oldPass').value  = '';
+    document.getElementById('newPass').value  = '';
+    document.getElementById('newPass2').value = '';
+  } catch(e) {
+    showMsg('❌ ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Lưu mật khẩu mới';
+  }
+}
+
+function showMsg(text, type) {
+  const el = document.getElementById('pwMsg');
+  el.textContent = text;
+  el.className   = 'pw-msg ' + type;
+  el.style.display = 'block';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') changePassword();
+});
+</script>
+</body>
+</html>

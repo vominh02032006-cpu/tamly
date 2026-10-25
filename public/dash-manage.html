@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quản lý học sinh – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="teacher-page">
+<div id="sidebar-mount"></div>
+<main class="t-main">
+  <div class="t-header">
+    <div><h1>⚙️ Quản lý học sinh</h1><p class="t-subtitle" id="dashDate"></p></div>
+  </div>
+  <div class="t-body">
+
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:14px">➕ Tạo tài khoản học sinh</h3>
+    <div class="t-form-card">
+      <div class="t-form-group">
+        <label>Mã học sinh (tên đăng nhập)</label>
+        <input type="text" id="new-username" placeholder="VD: hs001 — chỉ chữ không dấu, số, dấu gạch dưới"/>
+      </div>
+      <div class="t-form-group">
+        <label>Họ và tên</label>
+        <input type="text" id="new-name" placeholder="VD: Nguyễn Văn An"/>
+      </div>
+      <div class="t-form-group">
+        <label>Lớp</label>
+        <input type="text" id="new-class" placeholder="VD: 12A1"/>
+      </div>
+      <button class="btn-primary" id="createBtn" onclick="createStudent()">Tạo tài khoản</button>
+      <div id="createResult" style="display:none;margin-top:12px;border-radius:10px;padding:12px 14px;font-size:.85rem;line-height:1.7"></div>
+    </div>
+
+    <div class="t-note" style="max-width:480px;margin-bottom:28px">
+      📌 Mật khẩu mặc định: <strong>123456</strong><br/>
+      Học sinh cũng có thể <strong>tự đăng ký</strong> tại trang <a href="/login.html" style="color:var(--primary)">Đăng nhập</a>.
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-size:1rem;font-weight:700">📋 Danh sách tài khoản học sinh (<span id="stuCount">0</span>)</h3>
+      <button class="btn-icon" onclick="loadList()">🔄 Làm mới</button>
+    </div>
+
+    <div id="stuEmpty" style="display:none" class="t-empty" style="padding:32px 0">
+      <div class="t-empty-icon">🎒</div>
+      <p>Chưa có học sinh nào.</p>
+    </div>
+
+    <div class="tbl-wrap" id="stuWrap" style="display:none">
+      <table class="data-tbl">
+        <thead><tr><th>Mã HS</th><th>Họ tên</th><th>Lớp</th><th>Ngày tạo</th><th>Tổng check-in</th><th>Check-in gần nhất</th><th>Thao tác</th></tr></thead>
+        <tbody id="stuBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+<div id="toast" class="toast"></div>
+
+<!-- Modal sửa học sinh -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" style="max-width:440px">
+    <button class="modal-close" onclick="document.getElementById('editModal').classList.remove('open')">✕</button>
+    <div class="modal-name">✏️ Chỉnh sửa học sinh</div>
+    <div class="modal-meta">Cập nhật tên và lớp học</div>
+    <input type="hidden" id="editId"/>
+    <div class="t-form-group" style="margin-top:16px">
+      <label>Họ và tên</label>
+      <input type="text" id="editName" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Be Vietnam Pro',sans-serif;font-size:.9rem;outline:none"/>
+    </div>
+    <div class="t-form-group">
+      <label>Lớp</label>
+      <input type="text" id="editClass" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Be Vietnam Pro',sans-serif;font-size:.9rem;outline:none"/>
+    </div>
+    <button class="btn-primary" onclick="saveEdit()" style="width:100%;padding:12px">Lưu thay đổi</button>
+    <div id="editResult" style="display:none"></div>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+async function createStudent() {
+  const username = document.getElementById('new-username').value.trim();
+  const name     = document.getElementById('new-name').value.trim();
+  const cls      = document.getElementById('new-class').value.trim();
+  const resEl    = document.getElementById('createResult');
+  const btn      = document.getElementById('createBtn');
+
+  if (!username || !name || !cls) { showToast('Vui lòng điền đầy đủ!', 'error'); return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) { showToast('Tên đăng nhập chỉ dùng chữ không dấu, số và _', 'error'); return; }
+
+  btn.disabled = true; btn.textContent = '⏳ Đang tạo…';
+  try {
+    const r = await api('POST', '/api/auth/create-student', { username, name, studentClass: cls });
+    resEl.style.cssText = 'display:block;background:#dcfce7;color:#166534;border-radius:10px;padding:12px 14px;font-size:.85rem;line-height:1.8;margin-top:12px';
+    resEl.innerHTML = `✅ <strong>Tạo thành công!</strong><br>Mã đăng nhập: <strong>${r.student.username}</strong><br>Mật khẩu: <strong>${r.student.defaultPassword}</strong>`;
+    document.getElementById('new-username').value = '';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-class').value = '';
+    showToast('Tạo tài khoản thành công!', 'success');
+    loadList();
+  } catch(e) {
+    resEl.style.cssText = 'display:block;background:#fee2e2;color:#991b1b;border-radius:10px;padding:12px 14px;font-size:.85rem;margin-top:12px';
+    resEl.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Tạo tài khoản';
+  }
+}
+
+async function loadList() {
+  try {
+    const students = await api('GET', '/api/dashboard/students');
+    document.getElementById('stuCount').textContent  = students.length;
+    document.getElementById('stuEmpty').style.display = students.length ? 'none' : 'block';
+    document.getElementById('stuWrap').style.display  = students.length ? 'block' : 'none';
+    if (!students.length) return;
+    document.getElementById('stuBody').innerHTML = students.map(s => `
+      <tr id="row-${s.id}">
+        <td><code style="background:#f1f5f9;padding:2px 7px;border-radius:5px">${s.username}</code></td>
+        <td><strong>${s.name}</strong></td>
+        <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:6px;font-size:.78rem">${s.class||'–'}</span></td>
+        <td style="color:var(--muted);font-size:.82rem">${s.createdAt?fmtDate(s.createdAt):'–'}</td>
+        <td style="text-align:center">${s.totalCheckins}</td>
+        <td>${s.lastCheckin?fmtDate(s.lastCheckin):'<span class="no-checkin">Chưa check-in</span>'}</td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn-detail" onclick="openEdit('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.class||''}')">✏️ Sửa</button>
+            <button style="padding:6px 10px;background:#fef9c3;color:#713f12;border:none;border-radius:8px;font-family:'Be Vietnam Pro',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer" onclick="resetPassword('${s.id}','${s.name.replace(/'/g,"\\'")}')">🔑 Reset</button>
+            <button style="padding:6px 10px;background:#fee2e2;color:#991b1b;border:none;border-radius:8px;font-family:'Be Vietnam Pro',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer" onclick="deleteStudent('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.totalCheckins}')">🗑️ Xóa</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ── Sửa học sinh ──────────────────────────────────────────────────
+function openEdit(id, name, cls) {
+  document.getElementById('editId').value    = id;
+  document.getElementById('editName').value  = name;
+  document.getElementById('editClass').value = cls;
+  document.getElementById('editResult').style.display = 'none';
+  document.getElementById('editModal').classList.add('open');
+}
+
+async function saveEdit() {
+  const id  = document.getElementById('editId').value;
+  const name = document.getElementById('editName').value.trim();
+  const cls  = document.getElementById('editClass').value.trim();
+  const res  = document.getElementById('editResult');
+
+  if (!name || !cls) { res.style.cssText='display:block;background:#fee2e2;color:#991b1b;border-radius:8px;padding:9px 12px;font-size:.84rem;margin-top:10px'; res.textContent='❌ Vui lòng điền đầy đủ!'; return; }
+
+  try {
+    await api('PUT', `/api/auth/student/${id}`, { name, studentClass: cls });
+    res.style.cssText = 'display:block;background:#dcfce7;color:#166534;border-radius:8px;padding:9px 12px;font-size:.84rem;margin-top:10px';
+    res.textContent = '✅ Cập nhật thành công!';
+    setTimeout(() => { document.getElementById('editModal').classList.remove('open'); loadList(); }, 1000);
+  } catch(e) {
+    res.style.cssText = 'display:block;background:#fee2e2;color:#991b1b;border-radius:8px;padding:9px 12px;font-size:.84rem;margin-top:10px';
+    res.textContent = '❌ ' + e.message;
+  }
+}
+
+// ── Reset mật khẩu ────────────────────────────────────────────────
+async function resetPassword(id, name) {
+  if (!confirm(`Đặt lại mật khẩu của "${name}" về 123456?`)) return;
+  try {
+    await api('POST', `/api/auth/student/${id}/reset-password`);
+    showToast(`✅ Đã reset mật khẩu "${name}" về 123456`, 'success');
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+// ── Xóa học sinh ──────────────────────────────────────────────────
+async function deleteStudent(id, name, checkinCount) {
+  const msg = checkinCount > 0
+    ? `Xóa tài khoản "${name}"?\n⚠️ Tất cả ${checkinCount} dữ liệu check-in sẽ bị xóa vĩnh viễn!`
+    : `Xóa tài khoản "${name}"?`;
+  if (!confirm(msg)) return;
+  try {
+    await api('DELETE', `/api/auth/student/${id}`);
+    showToast(`🗑️ Đã xóa tài khoản "${name}"`, 'success');
+    document.getElementById(`row-${id}`)?.remove();
+    const remaining = document.querySelectorAll('#stuBody tr').length;
+    document.getElementById('stuCount').textContent = remaining;
+    if (remaining === 0) {
+      document.getElementById('stuEmpty').style.display = 'block';
+      document.getElementById('stuWrap').style.display  = 'none';
+    }
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement?.closest?.('.t-form-card')) createStudent();
+});
+
+loadList();
+</script>
+</body>
+</html>

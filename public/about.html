@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Giới thiệu – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/landing.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="landing-page">
+
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo"><a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"><span class="logo-icon">🧠</span><span>MoodTok</span></a></div>
+      <div class="nav-links">
+        <a href="about.html" style="color:var(--primary);font-weight:700">Giới thiệu</a>
+        <a href="features.html">Tính năng</a>
+        <a href="how.html">Cách dùng</a>
+        <span id="nav-right"><a href="login.html" class="btn-nav">Đăng nhập</a></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE HEADER -->
+  <div style="background:linear-gradient(135deg,#f0f4ff,#faf5ff);padding:80px 0 48px;margin-top:64px;text-align:center">
+    <div class="container">
+      <div class="section-tag">Giới thiệu</div>
+      <h1 class="section-title">Về MoodTok</h1>
+      <p style="color:var(--text-muted);font-size:1.05rem;max-width:600px;margin:0 auto;line-height:1.7">
+        MoodTok tiếp cận sức khỏe tinh thần học sinh dưới góc độ đa yếu tố — không xem một yếu tố riêng lẻ là nguyên nhân duy nhất.
+      </p>
+    </div>
+  </div>
+
+  <!-- MÔ HÌNH NGHIÊN CỨU -->
+  <section class="about" id="about" style="padding:60px 0">
+    <div class="container">
+      <div class="section-tag">Mô hình nghiên cứu</div>
+      <h2 class="section-title">6 yếu tố được theo dõi</h2>
+      <p class="section-desc">Mỗi yếu tố được quy đổi sang điểm số (0–100) và tính trung bình để ra chỉ số MHI.</p>
+      <div class="factors-grid">
+        <div class="factor-card">
+          <div class="factor-icon">📱</div>
+          <div class="factor-name">Thời gian mạng xã hội</div>
+          <div class="factor-desc" style="margin-top:8px;line-height:1.8">
+            Dưới 1h: 100đ &nbsp;|&nbsp; 1–2h: 90đ<br/>
+            2–3h: 75đ &nbsp;|&nbsp; 3–4h: 55đ<br/>
+            4–5h: 35đ &nbsp;|&nbsp; ≥5h: 15đ
+          </div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">😴</div>
+          <div class="factor-name">Thời lượng ngủ</div>
+          <div class="factor-desc" style="margin-top:8px;line-height:1.8">
+            &lt;4h: 0đ &nbsp;|&nbsp; 4–5h: 25đ<br/>
+            5–6h: 50đ &nbsp;|&nbsp; 6–7h: 70đ<br/>
+            7–8h: 85đ &nbsp;|&nbsp; ≥8h: 100đ
+          </div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">🛏️</div>
+          <div class="factor-name">Chất lượng ngủ</div>
+          <div class="factor-desc" style="margin-top:8px;line-height:1.8">
+            Rất kém: 0đ &nbsp;|&nbsp; Kém: 25đ<br/>
+            Bình thường: 50đ<br/>
+            Tốt: 75đ &nbsp;|&nbsp; Rất tốt: 100đ
+          </div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">💬</div>
+          <div class="factor-name">Cảm xúc hằng ngày</div>
+          <div class="factor-desc" style="margin-top:8px;line-height:1.8">
+            Rất tích cực: 100đ &nbsp;|&nbsp; Tích cực: 80đ<br/>
+            Bình thường: 60đ &nbsp;|&nbsp; Buồn: 35đ<br/>
+            Lo lắng: 25đ &nbsp;|&nbsp; Tuyệt vọng: 10đ
+          </div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">📚</div>
+          <div class="factor-name">Áp lực học tập</div>
+          <div class="factor-desc" style="margin-top:8px;line-height:1.8">
+            Mức 0 (không áp lực): 100đ<br/>
+            Mức 1 (nhẹ): 75đ &nbsp;|&nbsp; Mức 2 (vừa): 50đ<br/>
+            Mức 3 (cao): 25đ &nbsp;|&nbsp; Mức 4 (rất cao): 0đ<br/>
+            <em style="color:var(--primary)">Điểm = 100 − 25 × mức</em>
+          </div>
+        </div>
+        <div class="factor-card highlight-card">
+          <div class="factor-icon">🧘</div>
+          <div class="factor-name">Mức độ stress</div>
+          <div class="factor-desc" style="margin-top:8px;line-height:1.8">
+            Stress 0–1: 100đ &nbsp;|&nbsp; 2–3: 80đ<br/>
+            4–5: 60đ &nbsp;|&nbsp; 6–7: 35đ<br/>
+            8–10: 10đ
+          </div>
+        </div>
+      </div>
+
+      <!-- MHI Formula -->
+      <div style="background:linear-gradient(135deg,#e0e7ff,#ede9fe);border-radius:16px;padding:24px;text-align:center;margin-top:24px">
+        <div style="font-size:1.1rem;font-weight:700;color:#4f46e5;margin-bottom:8px">💚 Chỉ số MHI (Mood Health Index)</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#1e293b">
+          MHI = (MXH + Ngủ_h + Ngủ_q + Cảm_xúc + Áp_lực + Stress) ÷ 6
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:.88rem">
+          <span style="background:#dcfce7;color:#166534;padding:4px 14px;border-radius:99px;font-weight:600">≥70: Tốt</span>
+          <span style="background:#fef9c3;color:#713f12;padding:4px 14px;border-radius:99px;font-weight:600">40–69: Cần chú ý</span>
+          <span style="background:#fee2e2;color:#991b1b;padding:4px 14px;border-radius:99px;font-weight:600">&lt;40: Cần hỗ trợ</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THANG ĐO -->
+  <section style="padding:60px 0;background:var(--bg)">
+    <div class="container">
+      <div class="section-tag">Thang đo chuẩn hóa</div>
+      <h2 class="section-title">WHO-5 & PSS</h2>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon">🌿</div>
+          <div>
+            <h3>WHO-5 Well-being Index</h3>
+            <p>Thang đo sức khỏe tinh thần của Tổ chức Y tế Thế giới. 5 câu hỏi về cảm xúc trong 2 tuần gần nhất. Điểm &lt;52/100 là ngưỡng cần chú ý.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🧘</div>
+          <div>
+            <h3>Perceived Stress Scale (PSS-10)</h3>
+            <p>Thang đo mức độ stress được nhận thức. 10 câu hỏi về cảm nhận stress trong 1 tháng gần nhất. Thực hiện định kỳ, không phải hằng ngày.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <section class="disclaimer-section">
+    <div class="container">
+      <div class="disclaimer-box">
+        <span>⚠️</span>
+        <p><strong>Lưu ý:</strong> MoodTok không chẩn đoán bệnh lý tâm thần. Hệ thống chỉ hỗ trợ theo dõi, nhận diện dấu hiệu cần quan tâm và cung cấp thông tin tham khảo. Kết quả không thay thế đánh giá của chuyên gia tâm lý hoặc nhân viên y tế.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="container">
+      <h2>Sẵn sàng bắt đầu?</h2>
+      <p>Đăng ký miễn phí và check-in ngay hôm nay.</p>
+      <a id="cta-btn" href="login.html" class="btn-primary btn-large">Bắt đầu ngay →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">🧠 MoodTok</div>
+      <p>Trường Phổ thông Dân tộc Nội trú THPT Hậu Giang</p>
+    </div>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script>
+    const u = (() => { try { return JSON.parse(localStorage.getItem('mt_user')); } catch { return null; } })();
+    if (u) { const c = document.getElementById('cta-btn'); if(c){c.href=u.role==='teacher'?'dashboard.html':'checkin.html';c.textContent='Vào ứng dụng →';} }
+  </script>
+</body>
+</html>

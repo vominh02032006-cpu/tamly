@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kết quả của bạn – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/result.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="result-page">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="index.html" class="header-logo">🧠 MoodTok</a>
+    </div>
+    <div class="header-right">
+      <span class="user-greeting" id="userGreeting">Xin chào!</span>
+      <a href="checkin.html" class="btn-nav-outline">+ Check-in mới</a>
+      <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+    </div>
+  </header>
+
+  <main class="result-main">
+    <div class="container">
+
+      <!-- WELCOME SECTION -->
+      <section class="welcome-section">
+        <div class="welcome-card">
+          <div class="welcome-left">
+            <div class="mhi-circle" id="mhiCircle">
+              <svg viewBox="0 0 120 120">
+                <circle class="mhi-bg" cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                <circle class="mhi-fill" id="mhiFill" cx="60" cy="60" r="50" fill="none"
+                  stroke="#22c55e" stroke-width="10"
+                  stroke-dasharray="314" stroke-dashoffset="94"
+                  stroke-linecap="round" transform="rotate(-90 60 60)"/>
+              </svg>
+              <div class="mhi-text">
+                <span class="mhi-score" id="mhiScore">70</span>
+                <span class="mhi-label">MHI</span>
+              </div>
+            </div>
+          </div>
+          <div class="welcome-right">
+            <h1 id="welcomeTitle">Xin chào, Nguyễn Văn An! 👋</h1>
+            <div class="mhi-status" id="mhiStatus">
+              <span class="status-dot good"></span>
+              <span>Trạng thái tinh thần: <strong>Ổn định</strong></span>
+            </div>
+            <p id="mhiDesc" class="mhi-desc">Chỉ số sức khỏe tinh thần của bạn hôm nay ở mức tốt. Hãy tiếp tục duy trì thói quen check-in mỗi ngày!</p>
+            <div class="today-summary" id="todaySummary">
+              <!-- filled by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI SUGGESTION -->
+      <section class="ai-section" id="aiSection">
+        <div class="ai-card">
+          <div class="ai-header">
+            <span class="ai-icon">🤖</span>
+            <span>Gợi ý từ MoodTok AI</span>
+          </div>
+          <div class="ai-content" id="aiContent">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TABS: Biểu đồ -->
+      <section class="charts-section">
+        <div class="charts-tabs">
+          <button class="chart-tab active" onclick="switchChartTab('week')">7 ngày qua</button>
+          <button class="chart-tab" onclick="switchChartTab('month')">30 ngày qua</button>
+        </div>
+
+        <div class="charts-grid">
+          <!-- Cảm xúc -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span>💬 Xu hướng cảm xúc</span>
+            </div>
+            <canvas id="emotionChart" height="180"></canvas>
+          </div>
+
+          <!-- Giấc ngủ -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span>😴 Giấc ngủ (giờ)</span>
+            </div>
+            <canvas id="sleepChart" height="180"></canvas>
+          </div>
+
+          <!-- Mạng xã hội -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span>📱 Thời gian mạng xã hội (giờ)</span>
+            </div>
+            <canvas id="socialChart" height="180"></canvas>
+          </div>
+
+          <!-- Stress & Áp lực -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span>📚 Áp lực học tập & Stress</span>
+            </div>
+            <canvas id="stressChart" height="180"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- LỊCH SỬ CHECK-IN -->
+      <section class="history-section">
+        <h2>📅 Lịch sử Check-in</h2>
+        <div class="history-table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Cảm xúc</th>
+                <th>Ngủ</th>
+                <th>Mạng XH</th>
+                <th>Áp lực</th>
+                <th>Stress</th>
+                <th>MHI</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- KHẢO SÁT ĐỊNH KỲ -->
+      <section class="survey-section">
+        <div class="survey-card">
+          <div class="survey-icon">📋</div>
+          <div>
+            <h3>Khảo sát sức khỏe tinh thần định kỳ</h3>
+            <p>Thang đo WHO-5 và PSS giúp đánh giá toàn diện hơn. Bạn chưa làm khảo sát tuần này.</p>
+          </div>
+          <a href="survey.html" class="btn-survey">Làm khảo sát →</a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/result.js"></script>
+</body>
+</html>

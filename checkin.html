@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Check-in hôm nay – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/checkin.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="checkin-page">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="index.html" class="header-logo">🧠 MoodTok</a>
+    </div>
+    <div class="header-center">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+      </div>
+      <span class="progress-label" id="progressLabel">Bước 1 / 6</span>
+    </div>
+    <div class="header-right">
+      <span class="user-greeting" id="userGreeting">Xin chào!</span>
+      <a href="result.html" class="btn-skip">Bỏ qua →</a>
+    </div>
+  </header>
+
+  <!-- MAIN CHECKIN -->
+  <main class="checkin-main">
+    <div class="checkin-wrapper">
+
+      <!-- BƯỚC 1: CẢM XÚC -->
+      <div class="step-panel active" id="step1">
+        <div class="step-tag">Cảm xúc hôm nay</div>
+        <h2 class="step-question">Hôm nay bạn cảm thấy thế nào? 💭</h2>
+        <p class="step-hint">Chọn biểu tượng phù hợp nhất với cảm xúc của bạn lúc này</p>
+        <div class="emotion-grid">
+          <div class="emotion-item" data-value="5" data-label="Rất tích cực" onclick="selectEmotion(this)">
+            <div class="emotion-emoji">😄</div>
+            <div class="emotion-label">Rất tích cực</div>
+            <div class="emotion-score">100 điểm</div>
+          </div>
+          <div class="emotion-item" data-value="4" data-label="Tích cực" onclick="selectEmotion(this)">
+            <div class="emotion-emoji">😊</div>
+            <div class="emotion-label">Tích cực</div>
+            <div class="emotion-score">80 điểm</div>
+          </div>
+          <div class="emotion-item" data-value="3" data-label="Bình thường" onclick="selectEmotion(this)">
+            <div class="emotion-emoji">😐</div>
+            <div class="emotion-label">Bình thường</div>
+            <div class="emotion-score">60 điểm</div>
+          </div>
+          <div class="emotion-item" data-value="2" data-label="Buồn/chán nản" onclick="selectEmotion(this)">
+            <div class="emotion-emoji">😔</div>
+            <div class="emotion-label">Buồn/chán nản</div>
+            <div class="emotion-score">35 điểm</div>
+          </div>
+          <div class="emotion-item" data-value="1" data-label="Lo lắng/căng thẳng" onclick="selectEmotion(this)">
+            <div class="emotion-emoji">😰</div>
+            <div class="emotion-label">Lo lắng/căng thẳng</div>
+            <div class="emotion-score">25 điểm</div>
+          </div>
+          <div class="emotion-item" data-value="0" data-label="Rất buồn/tuyệt vọng" onclick="selectEmotion(this)">
+            <div class="emotion-emoji">😞</div>
+            <div class="emotion-label">Rất buồn/tuyệt vọng</div>
+            <div class="emotion-score">10 điểm</div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-next" id="btn-next1" disabled onclick="goNext(2)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- BƯỚC 2: MẠNG XÃ HỘI -->
+      <div class="step-panel" id="step2">
+        <div class="step-tag">Mạng xã hội</div>
+        <h2 class="step-question">Hôm nay bạn dùng mạng xã hội bao lâu? 📱</h2>
+        <p class="step-hint">Bao gồm TikTok, Facebook, Instagram, YouTube,...</p>
+        <div class="social-options">
+          <div class="option-card" data-value="0.5" onclick="selectOption(this, 'social')">
+            <span class="opt-icon">⚡</span>
+            <span class="opt-label">Dưới 30 phút</span>
+          </div>
+          <div class="option-card" data-value="1" onclick="selectOption(this, 'social')">
+            <span class="opt-icon">✅</span>
+            <span class="opt-label">30 phút – 1 giờ</span>
+          </div>
+          <div class="option-card" data-value="2" onclick="selectOption(this, 'social')">
+            <span class="opt-icon">🟡</span>
+            <span class="opt-label">1 – 2 giờ</span>
+          </div>
+          <div class="option-card" data-value="3" onclick="selectOption(this, 'social')">
+            <span class="opt-icon">🟠</span>
+            <span class="opt-label">2 – 3 giờ</span>
+          </div>
+          <div class="option-card" data-value="4" onclick="selectOption(this, 'social')">
+            <span class="opt-icon">🔴</span>
+            <span class="opt-label">3 – 4 giờ</span>
+          </div>
+          <div class="option-card" data-value="5" onclick="selectOption(this, 'social')">
+            <span class="opt-icon">⛔</span>
+            <span class="opt-label">Trên 4 giờ</span>
+          </div>
+        </div>
+        <div class="custom-input-wrap">
+          <label>Hoặc nhập chính xác (giờ):</label>
+          <input type="number" id="social-custom" min="0" max="24" step="0.5" placeholder="VD: 2.5" oninput="setCustomSocial(this.value)"/>
+        </div>
+        <div class="step-nav">
+          <button class="btn-back" onclick="goNext(1)">← Quay lại</button>
+          <button class="btn-next" id="btn-next2" disabled onclick="goNext(3)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- BƯỚC 3: GIẤC NGỦ -->
+      <div class="step-panel" id="step3">
+        <div class="step-tag">Giấc ngủ</div>
+        <h2 class="step-question">Đêm qua bạn ngủ như thế nào? 😴</h2>
+        <p class="step-hint">Ghi nhận thời gian và chất lượng giấc ngủ của bạn</p>
+
+        <div class="sleep-section">
+          <label class="input-label">Bạn ngủ bao nhiêu tiếng?</label>
+          <div class="sleep-slider-wrap">
+            <input type="range" id="sleep-hours" min="2" max="12" step="0.5" value="7"
+              oninput="updateSleepHours(this.value)" class="slider"/>
+            <div class="slider-value" id="sleep-hours-display">7 giờ</div>
+          </div>
+          <div class="slider-labels">
+            <span>2h</span><span>4h</span><span>6h</span>
+            <span class="ideal">8h ✓</span><span>10h</span><span>12h</span>
+          </div>
+        </div>
+
+        <div class="sleep-section">
+          <label class="input-label">Chất lượng giấc ngủ?</label>
+          <div class="sleep-quality-grid">
+            <div class="quality-card" data-value="4" onclick="selectQuality(this)">
+              <span>🌟</span><span>Rất tốt</span><span class="quality-score">100đ</span>
+            </div>
+            <div class="quality-card" data-value="3" onclick="selectQuality(this)">
+              <span>😊</span><span>Tốt</span><span class="quality-score">75đ</span>
+            </div>
+            <div class="quality-card" data-value="2" onclick="selectQuality(this)">
+              <span>😐</span><span>Bình thường</span><span class="quality-score">50đ</span>
+            </div>
+            <div class="quality-card" data-value="1" onclick="selectQuality(this)">
+              <span>😔</span><span>Kém</span><span class="quality-score">25đ</span>
+            </div>
+            <div class="quality-card" data-value="0" onclick="selectQuality(this)">
+              <span>😞</span><span>Rất kém</span><span class="quality-score">0đ</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn-back" onclick="goNext(2)">← Quay lại</button>
+          <button class="btn-next" id="btn-next3" disabled onclick="goNext(4)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- BƯỚC 4: ÁP LỰC HỌC TẬP & STRESS -->
+      <div class="step-panel" id="step4">
+        <div class="step-tag">Học tập & Stress</div>
+        <h2 class="step-question">Áp lực học tập và stress hôm nay 📚</h2>
+        <p class="step-hint">Đánh giá thành thật nhất theo cảm nhận của bạn</p>
+
+        <!-- ÁP LỰC: thang 0-4 -->
+        <div class="scale-section">
+          <label class="input-label">Áp lực học tập hôm nay:</label>
+          <div class="pressure-options">
+            <div class="pressure-opt" data-value="0" onclick="selectPressure(this)">
+              <span class="p-num">0</span>
+              <span class="p-label">Không áp lực</span>
+              <span class="p-score">100đ</span>
+            </div>
+            <div class="pressure-opt" data-value="1" onclick="selectPressure(this)">
+              <span class="p-num">1</span>
+              <span class="p-label">Áp lực nhẹ</span>
+              <span class="p-score">75đ</span>
+            </div>
+            <div class="pressure-opt" data-value="2" onclick="selectPressure(this)">
+              <span class="p-num">2</span>
+              <span class="p-label">Áp lực vừa</span>
+              <span class="p-score">50đ</span>
+            </div>
+            <div class="pressure-opt" data-value="3" onclick="selectPressure(this)">
+              <span class="p-num">3</span>
+              <span class="p-label">Áp lực cao</span>
+              <span class="p-score">25đ</span>
+            </div>
+            <div class="pressure-opt" data-value="4" onclick="selectPressure(this)">
+              <span class="p-num">4</span>
+              <span class="p-label">Áp lực rất cao</span>
+              <span class="p-score">0đ</span>
+            </div>
+          </div>
+          <div class="formula-note">Công thức: Điểm = 100 − 25 × mức áp lực</div>
+        </div>
+
+        <!-- STRESS: thang 0-10 -->
+        <div class="scale-section">
+          <label class="input-label">Mức độ căng thẳng / stress:</label>
+          <div class="scale-wrap">
+            <input type="range" id="stress-level" min="0" max="10" step="1" value="3"
+              oninput="updateStress(this.value)" class="slider slider-stress"/>
+            <div class="scale-display">
+              <span class="scale-num" id="stress-val">3</span>
+              <span class="scale-text" id="stress-label">Stress thấp</span>
+            </div>
+          </div>
+          <div class="stress-bands">
+            <span class="band good">0-1: 100đ</span>
+            <span class="band okish">2-3: 80đ</span>
+            <span class="band mid">4-5: 60đ</span>
+            <span class="band warn">6-7: 35đ</span>
+            <span class="band danger">8-10: 10đ</span>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn-back" onclick="goNext(3)">← Quay lại</button>
+          <button class="btn-next" id="btn-next4" disabled onclick="goNext(5)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- BƯỚC 5: CHIA SẺ THÊM -->
+      <div class="step-panel" id="step5">
+        <div class="step-tag">Chia sẻ thêm</div>
+        <h2 class="step-question">Bạn muốn chia sẻ thêm điều gì không? 💬</h2>
+        <p class="step-hint">Hoàn toàn tự nguyện. Viết bất cứ điều gì bạn đang nghĩ hoặc cảm thấy hôm nay.</p>
+        <div class="share-area">
+          <textarea id="share-text" placeholder="Hôm nay mình cảm thấy... / Điều làm mình vui là... / Mình đang lo về..." maxlength="500" oninput="updateCharCount()"></textarea>
+          <div class="char-count"><span id="char-count">0</span>/500</div>
+        </div>
+        <div class="privacy-note">
+          <span>🔒</span>
+          <span>Nội dung chia sẻ được bảo mật. Chỉ người được phân quyền mới có thể xem trong trường hợp cần hỗ trợ.</span>
+        </div>
+        <div class="step-nav">
+          <button class="btn-back" onclick="goNext(4)">← Quay lại</button>
+          <button class="btn-next" onclick="goNext(6)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- BƯỚC 6: XÁC NHẬN -->
+      <div class="step-panel" id="step6">
+        <div class="step-tag">Xác nhận</div>
+        <h2 class="step-question">Xem lại thông tin check-in 📋</h2>
+        <p class="step-hint">Kiểm tra lại trước khi gửi. Bạn có thể quay lại chỉnh sửa.</p>
+        <div class="summary-card" id="summaryCard">
+          <!-- filled by JS -->
+        </div>
+        <div class="submit-wrap">
+          <button class="btn-submit" onclick="submitCheckin()">
+            <span>✅ Hoàn tất Check-in</span>
+          </button>
+        </div>
+        <div class="step-nav">
+          <button class="btn-back" onclick="goNext(5)">← Quay lại chỉnh sửa</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/app.js"></script>
+  <script src="js/checkin.js"></script>
+</body>
+</html>

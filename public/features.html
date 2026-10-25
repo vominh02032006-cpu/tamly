@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tính năng – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/landing.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="landing-page">
+
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo"><a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"><span class="logo-icon">🧠</span><span>MoodTok</span></a></div>
+      <div class="nav-links">
+        <a href="about.html">Giới thiệu</a>
+        <a href="features.html" style="color:var(--primary);font-weight:700">Tính năng</a>
+        <a href="how.html">Cách dùng</a>
+        <span id="nav-right"><a href="login.html" class="btn-nav">Đăng nhập</a></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE HEADER -->
+  <div style="background:linear-gradient(135deg,#f0f4ff,#faf5ff);padding:80px 0 48px;margin-top:64px;text-align:center">
+    <div class="container">
+      <div class="section-tag">Tính năng</div>
+      <h1 class="section-title">MoodTok làm được gì?</h1>
+      <p style="color:var(--text-muted);font-size:1.05rem;max-width:600px;margin:0 auto;line-height:1.7">
+        Từ check-in đơn giản đến AI phân tích chuyên sâu — tất cả trong một hệ thống dễ dùng.
+      </p>
+    </div>
+  </div>
+
+  <!-- CHO HỌC SINH -->
+  <section style="padding:60px 0;background:white">
+    <div class="container">
+      <div class="section-tag">Dành cho học sinh</div>
+      <h2 class="section-title">Tính năng học sinh</h2>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon">✅</div>
+          <div>
+            <h3>Check-in hằng ngày</h3>
+            <p>6 bước ngắn gọn, chỉ mất 2–3 phút. Ghi nhận cảm xúc, giấc ngủ, mạng xã hội, áp lực học tập và stress.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">💚</div>
+          <div>
+            <h3>Chỉ số MHI cá nhân</h3>
+            <p>Sau mỗi check-in, hệ thống tính chỉ số MHI (0–100) thể hiện trạng thái sức khỏe tinh thần tổng thể của bạn.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🤖</div>
+          <div>
+            <h3>AI Gemini phân tích</h3>
+            <p>Khi bạn chia sẻ suy nghĩ, AI Gemini đọc và đưa ra 3–4 gợi ý chăm sóc tinh thần cá nhân hóa ngay lập tức.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">💬</div>
+          <div>
+            <h3>AI Chat hỏi đáp</h3>
+            <p>Đặt câu hỏi trực tiếp với AI về cách giảm stress, cải thiện giấc ngủ hay bất kỳ điều gì về sức khỏe tinh thần.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📊</div>
+          <div>
+            <h3>Biểu đồ xu hướng</h3>
+            <p>Xem 4 biểu đồ thay đổi theo 7 hoặc 30 ngày: cảm xúc, giấc ngủ, mạng xã hội, stress & áp lực học tập.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📋</div>
+          <div>
+            <h3>Khảo sát WHO-5 & PSS</h3>
+            <p>Thực hiện khảo sát sức khỏe tinh thần định kỳ bằng thang đo chuẩn hóa quốc tế, xem điểm số và diễn giải.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHO GIÁO VIÊN -->
+  <section style="padding:60px 0;background:var(--bg)">
+    <div class="container">
+      <div class="section-tag">Dành cho giáo viên / Cán bộ tư vấn</div>
+      <h2 class="section-title">Dashboard quản lý</h2>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon">📈</div>
+          <div>
+            <h3>Tổng quan toàn trường</h3>
+            <p>Xem số học sinh check-in hôm nay, MHI trung bình, số trường hợp cần quan tâm và tỷ lệ check-in.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🎒</div>
+          <div>
+            <h3>Danh sách học sinh</h3>
+            <p>Xem dữ liệu check-in gần nhất của từng học sinh, MHI, cảm xúc, giờ ngủ, stress. Tìm kiếm và lọc dễ dàng.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🔔</div>
+          <div>
+            <h3>Cảnh báo sớm</h3>
+            <p>Hệ thống rule-based tự động nhận diện học sinh có tổ hợp dữ liệu nguy hiểm (ngủ ít + stress cao, v.v.).</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📉</div>
+          <div>
+            <h3>Xu hướng 7 ngày</h3>
+            <p>Biểu đồ MHI, giấc ngủ, mạng xã hội, stress trung bình toàn trường theo từng ngày trong tuần.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🔍</div>
+          <div>
+            <h3>Chi tiết từng học sinh</h3>
+            <p>Xem lịch sử check-in, điểm thành phần, cảnh báo, nội dung chia sẻ và phân tích AI của từng em.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">⚙️</div>
+          <div>
+            <h3>Tạo tài khoản học sinh</h3>
+            <p>Giáo viên có thể tạo tài khoản học sinh trực tiếp trong Dashboard với mật khẩu mặc định.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BẢO MẬT -->
+  <section style="padding:60px 0;background:white">
+    <div class="container">
+      <div class="section-tag">Bảo mật</div>
+      <h2 class="section-title">Dữ liệu của bạn được bảo vệ</h2>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon">🔒</div>
+          <div><h3>Mã hóa mật khẩu</h3><p>Tất cả mật khẩu được mã hóa bằng bcrypt — không ai có thể đọc mật khẩu gốc của bạn.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🎫</div>
+          <div><h3>JWT Authentication</h3><p>Mỗi phiên đăng nhập sử dụng token riêng, tự hết hạn sau 7 ngày.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">👁️</div>
+          <div><h3>Phân quyền truy cập</h3><p>Học sinh chỉ xem dữ liệu của mình. Giáo viên chỉ xem dữ liệu tổng hợp theo phân quyền.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">💾</div>
+          <div><h3>Lưu trữ cục bộ</h3><p>Dữ liệu lưu trên server của trường, không gửi ra ngoài ngoài trừ khi dùng AI Gemini (nội dung chia sẻ).</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="container">
+      <h2>Trải nghiệm đầy đủ tính năng</h2>
+      <p>Đăng ký miễn phí, không cần cài đặt ứng dụng.</p>
+      <a id="cta-btn" href="login.html" class="btn-primary btn-large">Bắt đầu ngay →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">🧠 MoodTok</div>
+      <p>Trường Phổ thông Dân tộc Nội trú THPT Hậu Giang</p>
+    </div>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script>
+    const u = (() => { try { return JSON.parse(localStorage.getItem('mt_user')); } catch { return null; } })();
+    if (u) { const c = document.getElementById('cta-btn'); if(c){c.href=u.role==='teacher'?'dashboard.html':'checkin.html';c.textContent='Vào ứng dụng →';} }
+  </script>
+</body>
+</html>

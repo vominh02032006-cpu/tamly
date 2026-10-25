@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Đăng nhập – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Tab chính Đăng nhập / Đăng ký ── */
+    .main-tabs { display:flex; gap:4px; background:var(--bg); border-radius:12px; padding:4px; margin-bottom:24px; }
+    .mtab { flex:1; padding:10px; border:none; background:transparent; border-radius:10px;
+            font-family:'Be Vietnam Pro',sans-serif; font-size:0.88rem; font-weight:500;
+            cursor:pointer; color:var(--text-muted); transition:all .2s; }
+    .mtab.active { background:white; color:var(--primary); box-shadow:0 2px 8px rgba(0,0,0,.08); font-weight:700; }
+
+    /* ── Panel ── */
+    .main-panel { display:none; }
+    .main-panel.active { display:block; }
+    .sub-panel { display:none; }
+    .sub-panel.active { display:block; }
+
+    /* ── Switch hint ── */
+    .switch-hint { text-align:center; margin-top:14px; font-size:0.82rem; color:var(--text-muted); }
+    .switch-hint a { color:var(--primary); cursor:pointer; font-weight:600; }
+
+    /* ── Message box ── */
+    .msg-box { border-radius:9px; padding:10px 14px; font-size:0.84rem; margin-top:10px; display:none; }
+    .msg-box.err { background:#fee2e2; color:#991b1b; }
+    .msg-box.ok  { background:#dcfce7; color:#166534; }
+
+    /* ── Code hint ── */
+    .code-hint { font-size:0.75rem; color:var(--text-muted); margin-top:5px; line-height:1.5; }
+
+    /* scroll nếu form dài */
+    .auth-right { overflow-y:auto; max-height:100vh; }
+  </style>
+</head>
+<body class="auth-page">
+
+<div class="auth-container">
+  <!-- LEFT -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <span class="logo-icon-large">🧠</span>
+      <h1>MoodTok</h1>
+      <p>Hệ thống theo dõi sức khỏe tinh thần học sinh THPT</p>
+    </div>
+    <div class="auth-quote">
+      <blockquote>"Hiểu cảm xúc của mình là bước đầu tiên để chăm sóc bản thân tốt hơn."</blockquote>
+    </div>
+    <div class="auth-features-list">
+      <div class="auth-feat">✅ Check-in cảm xúc hằng ngày</div>
+      <div class="auth-feat">🤖 AI phân tích nội dung chia sẻ</div>
+      <div class="auth-feat">📊 Biểu đồ xu hướng cá nhân</div>
+      <div class="auth-feat">🔒 Dữ liệu được bảo mật</div>
+    </div>
+    <div style="text-align:center;font-size:0.78rem;opacity:.6;">Trường PTDT Nội trú THPT Hậu Giang</div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="auth-right">
+    <div class="auth-card">
+
+      <!-- Tab chính -->
+      <div class="main-tabs">
+        <button class="mtab active" onclick="switchMain('login',this)">🔐 Đăng nhập</button>
+        <button class="mtab"        onclick="switchMain('register',this)">📝 Đăng ký</button>
+      </div>
+
+      <!-- ══ ĐĂNG NHẬP ══ -->
+      <div class="main-panel active" id="panel-login">
+        <div class="role-tabs">
+          <button class="role-tab active" onclick="switchLoginRole('student',this)">🎒 Học sinh</button>
+          <button class="role-tab"        onclick="switchLoginRole('teacher',this)">👨‍🏫 Giáo viên</button>
+        </div>
+
+        <!-- Login học sinh -->
+        <div class="sub-panel active login-form active" id="login-student">
+          <div class="form-title">Chào mừng trở lại! 👋</div>
+          <div class="form-subtitle">Đăng nhập để check-in hôm nay</div>
+          <div class="form-group">
+            <label>Tên đăng nhập</label>
+            <div class="input-wrapper"><span class="input-icon">🎒</span>
+              <input type="text" id="ls-u" placeholder="Nhập tên đăng nhập" autocomplete="username"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <div class="input-wrapper"><span class="input-icon">🔑</span>
+              <input type="password" id="ls-p" placeholder="Nhập mật khẩu" autocomplete="current-password"/>
+              <button class="toggle-pass" type="button" onclick="togglePwd('ls-p')">👁</button>
+            </div>
+          </div>
+          <button class="btn-login" onclick="doLogin('student')">Đăng nhập</button>
+        </div>
+
+        <!-- Login giáo viên -->
+        <div class="sub-panel login-form" id="login-teacher">
+          <div class="form-title">Cổng quản lý 🏫</div>
+          <div class="form-subtitle">Dành cho giáo viên và cán bộ tư vấn</div>
+          <div class="form-group">
+            <label>Tên đăng nhập</label>
+            <div class="input-wrapper"><span class="input-icon">👨‍🏫</span>
+              <input type="text" id="lt-u" placeholder="Nhập tên đăng nhập" autocomplete="username"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <div class="input-wrapper"><span class="input-icon">🔑</span>
+              <input type="password" id="lt-p" placeholder="Nhập mật khẩu" autocomplete="current-password"/>
+              <button class="toggle-pass" type="button" onclick="togglePwd('lt-p')">👁</button>
+            </div>
+          </div>
+          <button class="btn-login btn-teacher" onclick="doLogin('teacher')">Đăng nhập</button>
+        </div>
+
+        <div id="login-msg" class="msg-box err"></div>
+        <div class="switch-hint">Chưa có tài khoản? <a onclick="switchMain('register',document.querySelectorAll('.mtab')[1])">Đăng ký ngay →</a></div>
+      </div>
+
+      <!-- ══ ĐĂNG KÝ ══ -->
+      <div class="main-panel" id="panel-register">
+        <div class="role-tabs">
+          <button class="role-tab active" onclick="switchRegRole('student',this)">🎒 Học sinh</button>
+          <button class="role-tab"        onclick="switchRegRole('teacher',this)">👨‍🏫 Giáo viên</button>
+        </div>
+
+        <!-- Đăng ký học sinh -->
+        <div class="sub-panel login-form active" id="reg-student">
+          <div class="form-title">Tạo tài khoản học sinh 🎒</div>
+          <div class="form-subtitle">Điền đầy đủ thông tin để tạo tài khoản</div>
+          <div class="form-group">
+            <label>Họ và tên</label>
+            <div class="input-wrapper"><span class="input-icon">👤</span>
+              <input type="text" id="rs-name" placeholder="VD: Nguyễn Văn An"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Tên đăng nhập</label>
+            <div class="input-wrapper"><span class="input-icon">🎒</span>
+              <input type="text" id="rs-user" placeholder="Chữ không dấu, số, dấu gạch dưới" autocomplete="username"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Lớp</label>
+            <div class="input-wrapper"><span class="input-icon">🏫</span>
+              <input type="text" id="rs-class" placeholder="VD: 12A1"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <div class="input-wrapper"><span class="input-icon">🔑</span>
+              <input type="password" id="rs-pass" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"/>
+              <button class="toggle-pass" type="button" onclick="togglePwd('rs-pass')">👁</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Xác nhận mật khẩu</label>
+            <div class="input-wrapper"><span class="input-icon">🔑</span>
+              <input type="password" id="rs-pass2" placeholder="Nhập lại mật khẩu" autocomplete="new-password"/>
+              <button class="toggle-pass" type="button" onclick="togglePwd('rs-pass2')">👁</button>
+            </div>
+          </div>
+          <button class="btn-login" onclick="doRegister('student')">Tạo tài khoản học sinh</button>
+          <div id="reg-student-msg" class="msg-box"></div>
+        </div>
+
+        <!-- Đăng ký giáo viên -->
+        <div class="sub-panel login-form" id="reg-teacher">
+          <div class="form-title">Tạo tài khoản giáo viên 👨‍🏫</div>
+          <div class="form-subtitle">Dành cho giáo viên và cán bộ tư vấn học đường</div>
+          <div class="form-group">
+            <label>Họ và tên</label>
+            <div class="input-wrapper"><span class="input-icon">👤</span>
+              <input type="text" id="rt-name" placeholder="VD: Nguyễn Thị Bình"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Tên đăng nhập</label>
+            <div class="input-wrapper"><span class="input-icon">👨‍🏫</span>
+              <input type="text" id="rt-user" placeholder="Chữ không dấu, số, dấu gạch dưới" autocomplete="username"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <div class="input-wrapper"><span class="input-icon">🔑</span>
+              <input type="password" id="rt-pass" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"/>
+              <button class="toggle-pass" type="button" onclick="togglePwd('rt-pass')">👁</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Xác nhận mật khẩu</label>
+            <div class="input-wrapper"><span class="input-icon">🔑</span>
+              <input type="password" id="rt-pass2" placeholder="Nhập lại mật khẩu" autocomplete="new-password"/>
+              <button class="toggle-pass" type="button" onclick="togglePwd('rt-pass2')">👁</button>
+            </div>
+          </div>
+          <button class="btn-login btn-teacher" onclick="doRegister('teacher')">Tạo tài khoản giáo viên</button>
+          <div id="reg-teacher-msg" class="msg-box"></div>
+        </div>
+
+        <div class="switch-hint">Đã có tài khoản? <a onclick="switchMain('login',document.querySelectorAll('.mtab')[0])">← Đăng nhập</a></div>
+      </div>
+
+      <div class="auth-footer">
+        <a href="/">← Về trang chủ</a>
+        <span>•</span>
+        <span>Trường PTDT Nội trú THPT Hậu Giang</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto redirect
+(function(){
+  const t = localStorage.getItem('mt_token');
+  const u = (() => { try{ return JSON.parse(localStorage.getItem('mt_user')); }catch{ return null; }})();
+  if (t && u) window.location.href = u.role === 'teacher' ? 'dashboard.html' : 'checkin.html';
+})();
+
+// ── Switch tabs ──────────────────────────────────────────────────
+function switchMain(mode, el) {
+  document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.main-panel').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('panel-' + mode).classList.add('active');
+  clearMsgs();
+}
+
+function switchLoginRole(role, el) {
+  document.querySelectorAll('#panel-login .role-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#panel-login .sub-panel').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('login-' + role).classList.add('active');
+  clearMsgs();
+}
+
+function switchRegRole(role, el) {
+  document.querySelectorAll('#panel-register .role-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#panel-register .sub-panel').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('reg-' + role).classList.add('active');
+  clearMsgs();
+}
+
+function clearMsgs() {
+  document.querySelectorAll('.msg-box').forEach(m => m.style.display = 'none');
+}
+
+function togglePwd(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'msg-box ' + (type || 'err');
+  el.style.display = 'block';
+}
+
+function validateUsername(v) {
+  if (!v) return 'Vui lòng nhập tên đăng nhập';
+  if (!/^[a-zA-Z0-9_]+$/.test(v)) return 'Tên đăng nhập chỉ dùng chữ không dấu, số và dấu gạch dưới';
+  if (v.length < 3) return 'Tên đăng nhập phải có ít nhất 3 ký tự';
+  return null;
+}
+
+function validatePassword(p, p2) {
+  if (p.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+  if (p !== p2) return 'Mật khẩu xác nhận không khớp';
+  return null;
+}
+
+// ── Đăng nhập ─────────────────────────────────────────────────
+async function doLogin(role) {
+  const isS = role === 'student';
+  const u   = document.getElementById(isS ? 'ls-u' : 'lt-u').value.trim();
+  const p   = document.getElementById(isS ? 'ls-p' : 'lt-p').value;
+  if (!u || !p) { showMsg('login-msg', 'Vui lòng nhập đầy đủ thông tin!'); return; }
+
+  const btn = document.querySelector(`#login-${role} .btn-login`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang đăng nhập…'; }
+
+  try {
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:u, password:p })
+    });
+    const data = await r.json();
+    if (!r.ok) { showMsg('login-msg', data.error || 'Đăng nhập thất bại'); return; }
+    localStorage.setItem('mt_token', data.token);
+    localStorage.setItem('mt_user', JSON.stringify(data.user));
+    window.location.href = data.user.role === 'teacher' ? 'dashboard.html' : 'checkin.html';
+  } catch {
+    showMsg('login-msg', 'Lỗi kết nối server. Vui lòng thử lại.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Đăng nhập'; }
+  }
+}
+
+// ── Đăng ký ───────────────────────────────────────────────────
+async function doRegister(role) {
+  let body, msgId, endpoint;
+
+  if (role === 'student') {
+    const name  = document.getElementById('rs-name').value.trim();
+    const user  = document.getElementById('rs-user').value.trim();
+    const cls   = document.getElementById('rs-class').value.trim();
+    const pass  = document.getElementById('rs-pass').value;
+    const pass2 = document.getElementById('rs-pass2').value;
+    msgId    = 'reg-student-msg';
+    endpoint = '/api/auth/register-student';
+    if (!name) { showMsg(msgId,'Vui lòng nhập họ và tên'); return; }
+    if (!cls)  { showMsg(msgId,'Vui lòng nhập lớp học'); return; }
+    const uE = validateUsername(user); if (uE) { showMsg(msgId,uE); return; }
+    const pE = validatePassword(pass,pass2); if (pE) { showMsg(msgId,pE); return; }
+    body = { name, username:user, password:pass, studentClass:cls };
+  } else {
+    const name  = document.getElementById('rt-name').value.trim();
+    const user  = document.getElementById('rt-user').value.trim();
+    const pass  = document.getElementById('rt-pass').value;
+    const pass2 = document.getElementById('rt-pass2').value;
+    msgId    = 'reg-teacher-msg';
+    endpoint = '/api/auth/register-teacher';
+    if (!name) { showMsg(msgId,'Vui lòng nhập họ và tên'); return; }
+    const uE = validateUsername(user); if (uE) { showMsg(msgId,uE); return; }
+    const pE = validatePassword(pass,pass2); if (pE) { showMsg(msgId,pE); return; }
+    body = { name, username:user, password:pass };
+  }
+
+  const btn = document.querySelector(`#reg-${role} .btn-login`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang tạo tài khoản…'; }
+
+  try {
+    const r = await fetch(endpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    if (!r.ok) { showMsg(msgId, data.error || 'Đăng ký thất bại'); return; }
+    showMsg(msgId, '✅ Đăng ký thành công! Đang chuyển trang…', 'ok');
+    localStorage.setItem('mt_token', data.token);
+    localStorage.setItem('mt_user', JSON.stringify(data.user));
+    setTimeout(() => {
+      window.location.href = data.user.role === 'teacher' ? 'dashboard.html' : 'checkin.html';
+    }, 1200);
+  } catch {
+    showMsg(msgId, 'Lỗi kết nối server. Vui lòng thử lại.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = role === 'student' ? 'Tạo tài khoản học sinh' : 'Tạo tài khoản giáo viên'; }
+  }
+}
+
+// ── Enter key ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const activeMain = document.querySelector('.main-panel.active')?.id;
+  if (activeMain === 'panel-login') {
+    doLogin(document.querySelector('#panel-login .sub-panel.active')?.id === 'login-student' ? 'student' : 'teacher');
+  } else {
+    doRegister(document.querySelector('#panel-register .sub-panel.active')?.id === 'reg-student' ? 'student' : 'teacher');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Xu hướng – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="teacher-page">
+<div id="sidebar-mount"></div>
+<main class="t-main">
+  <div class="t-header">
+    <div><h1>📈 Xu hướng toàn trường</h1><p class="t-subtitle" id="dashDate"></p></div>
+    <button class="btn-icon" onclick="loadPage()">🔄 Làm mới</button>
+  </div>
+  <div class="t-body">
+    <div id="emptyMsg" style="display:none" class="t-empty">
+      <div class="t-empty-icon">📭</div>
+      <p>Chưa đủ dữ liệu để hiển thị xu hướng. Cần ít nhất 1 học sinh check-in.</p>
+    </div>
+    <div id="chartsWrap" style="display:none">
+      <div class="chart-card full" style="margin-bottom:14px">
+        <div class="chart-card-title">💚 MHI trung bình & số học sinh check-in mỗi ngày (7 ngày)</div>
+        <canvas id="mhiChart" height="200"></canvas>
+      </div>
+      <div class="chart-card full" style="margin-bottom:14px">
+        <div class="chart-card-title">💬 Cảm xúc trung bình (0 = Tuyệt vọng → 5 = Rất tích cực)</div>
+        <canvas id="emoChart" height="180"></canvas>
+      </div>
+      <div class="charts-row" style="margin-bottom:14px">
+        <div class="chart-card"><div class="chart-card-title">😴 Giờ ngủ trung bình</div><canvas id="sleepChart" height="200"></canvas></div>
+        <div class="chart-card"><div class="chart-card-title">📱 Mạng xã hội trung bình (giờ)</div><canvas id="socialChart" height="200"></canvas></div>
+      </div>
+      <div class="chart-card full" style="margin-bottom:20px">
+        <div class="chart-card-title">🧘 Stress & Áp lực học tập trung bình</div>
+        <canvas id="stressChart" height="180"></canvas>
+      </div>
+    </div>
+    <div id="tableWrap" style="display:none">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px">📋 Bảng tóm tắt 7 ngày</h3>
+      <div class="tbl-wrap">
+        <table class="data-tbl">
+          <thead><tr><th>Ngày</th><th>Số HS</th><th>MHI TB</th><th>Cảm xúc TB</th><th>Ngủ TB</th><th>MXH TB</th><th>Stress TB</th><th>Áp lực TB</th></tr></thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+let ch = {};
+
+function dc(id) { if (ch[id]) { ch[id].destroy(); delete ch[id]; } }
+
+async function loadPage() {
+  try {
+    const trends  = await api('GET', '/api/dashboard/trends');
+    const hasData = trends.some(t => t.count > 0);
+    document.getElementById('emptyMsg').style.display   = hasData ? 'none' : 'block';
+    document.getElementById('chartsWrap').style.display = hasData ? 'block' : 'none';
+    document.getElementById('tableWrap').style.display  = hasData ? 'block' : 'none';
+    if (!hasData) return;
+
+    const labels = trends.map(t => t.date);
+    const lo = { responsive:true, plugins:{legend:{display:true,labels:{font:{size:11}}}}, scales:{x:{grid:{display:false}},y:{grid:{color:'#f1f5f9'}}} };
+
+    dc('mhiChart');
+    ch.mhi = new Chart(document.getElementById('mhiChart'), { type:'line',
+      data:{ labels, datasets:[
+        { label:'MHI TB', data:trends.map(t=>t.avgMHI), borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:true, tension:0.4, pointRadius:5, spanGaps:true, yAxisID:'y' },
+        { label:'Số HS', data:trends.map(t=>t.count), borderColor:'#94a3b8', borderDash:[4,4], fill:false, tension:0, pointRadius:4, spanGaps:true, yAxisID:'y2' }
+      ]},
+      options:{ ...lo, scales:{ x:{grid:{display:false}}, y:{min:0,max:100,grid:{color:'#f1f5f9'},title:{display:true,text:'MHI'}}, y2:{position:'right',grid:{display:false},title:{display:true,text:'Số HS'}} } }
+    });
+
+    dc('emoChart');
+    ch.emo = new Chart(document.getElementById('emoChart'), { type:'line',
+      data:{ labels, datasets:[{ label:'Cảm xúc TB', data:trends.map(t=>t.avgEmotion), borderColor:'#8b5cf6', backgroundColor:'rgba(139,92,246,.08)', fill:true, tension:0.4, pointRadius:4, spanGaps:true }]},
+      options:{ ...lo, scales:{ x:{grid:{display:false}}, y:{min:0,max:5,grid:{color:'#f1f5f9'},ticks:{ callback:v=>['😞','😰','😔','😐','😊','😄'][v]||v }} } }
+    });
+
+    dc('sleepChart');
+    ch.sleep = new Chart(document.getElementById('sleepChart'), { type:'bar',
+      data:{ labels, datasets:[{ label:'Ngủ TB (h)', data:trends.map(t=>t.avgSleep), backgroundColor:'rgba(34,197,94,.7)', borderRadius:6 }]},
+      options:{ ...lo, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{min:0,ticks:{callback:v=>v+'h'},grid:{color:'#f1f5f9'}}} }
+    });
+
+    dc('socialChart');
+    ch.social = new Chart(document.getElementById('socialChart'), { type:'bar',
+      data:{ labels, datasets:[{ label:'MXH TB (h)', data:trends.map(t=>t.avgSocial), backgroundColor:'rgba(139,92,246,.7)', borderRadius:6 }]},
+      options:{ ...lo, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{min:0,ticks:{callback:v=>v+'h'},grid:{color:'#f1f5f9'}}} }
+    });
+
+    dc('stressChart');
+    ch.stress = new Chart(document.getElementById('stressChart'), { type:'line',
+      data:{ labels, datasets:[
+        { label:'Stress TB', data:trends.map(t=>t.avgStress), borderColor:'#ef4444', fill:false, tension:0.4, pointRadius:4, spanGaps:true },
+        { label:'Áp lực TB', data:trends.map(t=>t.avgPressure), borderColor:'#f59e0b', fill:false, tension:0.4, pointRadius:4, spanGaps:true }
+      ]},
+      options:{ ...lo, scales:{x:{grid:{display:false}},y:{min:0,max:10,grid:{color:'#f1f5f9'}}} }
+    });
+
+    // Bảng tóm tắt
+    document.getElementById('summaryBody').innerHTML = trends.map(t => {
+      const c = t.avgMHI >= 70 ? '#22c55e' : t.avgMHI >= 40 ? '#f59e0b' : '#ef4444';
+      const eEmoji = t.avgEmotion != null ? (['😞','😰','😔','😐','😊','😄'][Math.round(t.avgEmotion)]||'') + ' ' + t.avgEmotion : '–';
+      return `<tr>
+        <td><strong>${t.date}</strong></td>
+        <td style="text-align:center">${t.count||'–'}</td>
+        <td><span style="font-weight:700;color:${t.avgMHI?c:'var(--muted)'}">${t.avgMHI??'–'}</span></td>
+        <td>${eEmoji}</td>
+        <td>${t.avgSleep!=null?t.avgSleep+'h':'–'}</td>
+        <td>${t.avgSocial!=null?t.avgSocial+'h':'–'}</td>
+        <td>${t.avgStress!=null?t.avgStress+'/10':'–'}</td>
+        <td>${t.avgPressure!=null?'Mức '+t.avgPressure:'–'}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+loadPage();
+</script>
+</body>
+</html>

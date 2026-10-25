@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cảnh báo – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/teacher.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body class="teacher-page">
+<div id="sidebar-mount"></div>
+<main class="t-main">
+  <div class="t-header">
+    <div><h1>⚠️ Cảnh báo sớm</h1><p class="t-subtitle" id="dashDate"></p></div>
+    <button class="btn-icon" onclick="loadPage()">🔄 Làm mới</button>
+  </div>
+  <div class="t-body">
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:.87rem;color:#7c2d12;line-height:1.7">
+      🔔 <strong>Hệ thống rule-based</strong> tự động nhận diện học sinh có tổ hợp dữ liệu cần quan tâm hôm nay. Các trường hợp này cần được tiếp cận và hỗ trợ trực tiếp.
+    </div>
+    <div id="loading" style="text-align:center;padding:40px;color:var(--muted)">⏳ Đang tải…</div>
+    <div id="emptyMsg" style="display:none" class="t-empty">
+      <div class="t-empty-icon">✅</div>
+      <p>Không có học sinh nào cần đặc biệt quan tâm hôm nay.</p>
+    </div>
+    <div id="alertsList" class="alerts-list"></div>
+  </div>
+</main>
+<div class="modal-overlay" id="stuModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('stuModal').classList.remove('open')">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+async function loadPage() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('alertsList').innerHTML  = '';
+  document.getElementById('emptyMsg').style.display = 'none';
+  try {
+    const alerts = await api('GET', '/api/dashboard/alerts');
+    document.getElementById('loading').style.display = 'none';
+    const badge = document.getElementById('alertBadge');
+    if (badge) badge.textContent = alerts.length > 0 ? alerts.length : '';
+    if (!alerts.length) { document.getElementById('emptyMsg').style.display = 'block'; return; }
+
+    document.getElementById('alertsList').innerHTML = alerts.map(c => {
+      const isDanger = c.alerts.some(a => a.level === 'danger');
+      const rHtml = c.alerts.map(a=>`<span class="ar ${a.level}">${a.level==='danger'?'🔴':'🟡'} ${a.msg}</span>`).join('');
+      return `<div class="alert-card ${isDanger?'':'warn'}">
+        <div class="ac-icon">${isDanger?'🔴':'⚠️'}</div>
+        <div class="ac-body">
+          <div class="ac-name">${c.studentName} <span style="font-weight:400;color:var(--muted);font-size:.88rem">· ${c.class||''}</span></div>
+          <div class="ac-date">Check-in: ${fmtDate(c.date)} | MHI: <strong style="color:${mhiColor(c.mhi)}">${c.mhi}/100</strong></div>
+          <div class="ac-reasons">${rHtml}</div>
+          ${c.shareText?`<div class="ac-share">💬 "${c.shareText.slice(0,150)}${c.shareText.length>150?'...':''}"</div>`:''}
+        </div>
+        <button class="btn-detail" onclick="openModal('${c.studentId}')">Xem chi tiết</button>
+      </div>`;
+    }).join('');
+  } catch(e) { document.getElementById('loading').style.display='none'; showToast(e.message,'error'); }
+}
+
+async function openModal(id) {
+  const modal = document.getElementById('stuModal');
+  const content = document.getElementById('modalContent');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">⏳ Đang tải…</div>';
+  modal.classList.add('open');
+  try {
+    const { student: s, checkins } = await api('GET', `/api/dashboard/student/${id}`);
+    const latest = checkins[0];
+    if (!latest) { content.innerHTML = `<div class="modal-name">${s.name}</div><div class="t-empty"><div class="t-empty-icon">📭</div><p>Chưa có dữ liệu.</p></div>`; return; }
+    const em    = EMOTION_MAP[latest.emotion]||EMOTION_MAP[3];
+    const bd    = getBreakdown(latest);
+    const st    = mhiStatus(latest.mhi);
+    const mCls  = latest.mhi>=70?'high':latest.mhi>=40?'mid':'low';
+    let aiHtml  = '';
+    if (latest.aiAnalysis) {
+      try { const p=JSON.parse(latest.aiAnalysis.replace(/```json|```/g,'').trim()); aiHtml=(p.tips||[]).map(t=>`<div style="background:#f8fafc;border-radius:8px;padding:9px 12px;font-size:.84rem;margin-bottom:5px">${t.icon||'💡'} ${t.text}</div>`).join(''); }
+      catch { aiHtml=`<div style="background:#f8fafc;border-radius:8px;padding:9px 12px;font-size:.84rem">${latest.aiAnalysis.slice(0,300)}</div>`; }
+    }
+    const aHtml = latest.alerts?.length ? latest.alerts.map(a=>`<span class="ar ${a.level}">${a.level==='danger'?'🔴':'🟡'} ${a.msg}</span>`).join('') : '<span style="color:#22c55e;font-size:.84rem">✅ Không có</span>';
+    content.innerHTML = `
+      <div class="modal-name">${s.name}</div>
+      <div class="modal-meta">${s.username} · Lớp ${s.class||'–'} · ${checkins.length} check-in</div>
+      <div style="display:flex;gap:14px;align-items:center;background:#f8fafc;border-radius:12px;padding:14px;margin:14px 0">
+        <div style="text-align:center;min-width:56px"><div style="font-size:2rem;font-weight:800;color:${mhiColor(latest.mhi)};line-height:1">${latest.mhi}</div><div style="font-size:.68rem;color:var(--muted)">MHI</div></div>
+        <div><span class="mhi-badge ${mCls}">${st.label}</span><div style="font-size:.82rem;color:var(--muted);margin-top:5px">${fmtDate(latest.date)}</div></div>
+      </div>
+      <div class="modal-sec">📊 Điểm thành phần</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        ${bd.map(b=>`<div style="background:#f8fafc;border-radius:10px;padding:10px;text-align:center"><div>${b.icon}</div><div style="font-size:.68rem;color:var(--muted);margin:2px 0">${b.label}</div><div style="font-size:1.05rem;font-weight:800;color:${b.score>=75?'#22c55e':b.score>=50?'#f59e0b':'#ef4444'}">${b.score}</div></div>`).join('')}
+      </div>
+      <div class="modal-sec">📋 Dữ liệu</div>
+      <div class="modal-row"><span>${em.emoji} Cảm xúc</span><span>${em.label}</span></div>
+      <div class="modal-row"><span>😴 Giấc ngủ</span><span>${latest.sleepHours}h · ${QUALITY_MAP[latest.sleepQuality]||'–'}</span></div>
+      <div class="modal-row"><span>📱 Mạng xã hội</span><span>${latest.socialHours}h</span></div>
+      <div class="modal-row"><span>📚 Áp lực</span><span>Mức ${latest.studyPressure}/4</span></div>
+      <div class="modal-row"><span>🧘 Stress</span><span>${latest.stressLevel}/10</span></div>
+      <div class="modal-sec">⚠️ Cảnh báo rule-based</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">${aHtml}</div>
+      ${latest.shareText?`<div class="modal-sec">💬 Chia sẻ</div><div class="modal-share">"${latest.shareText}"</div>`:''}
+      <div class="modal-sec">🤖 Gợi ý AI</div>
+      ${aiHtml||'<div style="color:#94a3b8;font-size:.84rem">Chưa có.</div>'}
+      <div style="background:#fffbeb;border-radius:8px;padding:9px 12px;font-size:.78rem;color:#78350f;margin-top:14px">⚠️ Thông tin chỉ mang tính tham khảo.</div>
+    `;
+  } catch(e) { content.innerHTML = `<div style="text-align:center;padding:32px;color:#ef4444">❌ ${e.message}</div>`; }
+}
+
+loadPage();
+setInterval(loadPage, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – MoodTok</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="dashboard-page">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span>🧠</span> MoodTok
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#overview" class="nav-item active" onclick="showSection('overview')">
+        <span>📊</span> Tổng quan
+      </a>
+      <a href="#students" class="nav-item" onclick="showSection('students')">
+        <span>🎒</span> Học sinh
+      </a>
+      <a href="#alerts" class="nav-item" onclick="showSection('alerts')">
+        <span>🔔</span> Cảnh báo
+        <span class="badge" id="alertBadge">3</span>
+      </a>
+      <a href="#trends" class="nav-item" onclick="showSection('trends')">
+        <span>📈</span> Xu hướng
+      </a>
+      <a href="#surveys" class="nav-item" onclick="showSection('surveys')">
+        <span>📋</span> Khảo sát
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">👨‍🏫</div>
+        <div>
+          <div class="sidebar-name" id="sidebarName">Giáo viên</div>
+          <div class="sidebar-role">Cán bộ tư vấn</div>
+        </div>
+      </div>
+      <button class="btn-logout-small" onclick="logout()">Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="dash-main">
+
+    <!-- HEADER -->
+    <div class="dash-header">
+      <div>
+        <h1 id="sectionTitle">Tổng quan</h1>
+        <p class="dash-subtitle" id="dashDate"></p>
+      </div>
+      <div class="dash-header-actions">
+        <select class="select-class" id="classFilter" onchange="filterByClass()">
+          <option value="all">Tất cả lớp</option>
+          <option value="12A1">12A1</option>
+          <option value="12A2">12A2</option>
+          <option value="11A1">11A1</option>
+          <option value="10A1">10A1</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- SECTION: TỔNG QUAN -->
+    <section class="dash-section active" id="section-overview">
+
+      <!-- STAT CARDS -->
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-card-icon blue">🎒</div>
+          <div>
+            <div class="stat-card-num">124</div>
+            <div class="stat-card-label">Học sinh tham gia</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green">✅</div>
+          <div>
+            <div class="stat-card-num">87</div>
+            <div class="stat-card-label">Check-in hôm nay</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon yellow">⚠️</div>
+          <div>
+            <div class="stat-card-num" id="alertCount">3</div>
+            <div class="stat-card-label">Cần quan tâm</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon purple">💚</div>
+          <div>
+            <div class="stat-card-num">68</div>
+            <div class="stat-card-label">MHI trung bình</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW -->
+      <div class="dash-charts-row">
+        <div class="dash-chart-card wide">
+          <div class="chart-title">📊 Phân phối cảm xúc hôm nay</div>
+          <canvas id="emotionDistChart" height="220"></canvas>
+        </div>
+        <div class="dash-chart-card">
+          <div class="chart-title">📱 Mạng XH vs Giấc ngủ (TB)</div>
+          <canvas id="avgChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="dash-charts-row">
+        <div class="dash-chart-card">
+          <div class="chart-title">📈 Xu hướng MHI theo tuần</div>
+          <canvas id="mhiTrendChart" height="220"></canvas>
+        </div>
+        <div class="dash-chart-card">
+          <div class="chart-title">🧘 Phân phối mức stress</div>
+          <canvas id="stressDistChart" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: HỌC SINH -->
+    <section class="dash-section" id="section-students">
+      <div class="section-toolbar">
+        <input type="text" class="search-input" placeholder="🔍 Tìm theo tên hoặc mã học sinh..." oninput="filterStudents(this.value)"/>
+        <select class="select-filter" onchange="filterByMHI(this.value)">
+          <option value="all">Tất cả MHI</option>
+          <option value="high">Tốt (≥70)</option>
+          <option value="mid">Trung bình (40-69)</option>
+          <option value="low">Cần quan tâm (<40)</option>
+        </select>
+      </div>
+      <div class="student-table-wrap">
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th>Mã HS</th>
+              <th>Họ tên</th>
+              <th>Lớp</th>
+              <th>Check-in gần nhất</th>
+              <th>Cảm xúc</th>
+              <th>Ngủ</th>
+              <th>Stress</th>
+              <th>MHI</th>
+              <th>Trạng thái</th>
+              <th>Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION: CẢNH BÁO -->
+    <section class="dash-section" id="section-alerts">
+      <h2 class="section-h2">⚠️ Học sinh cần quan tâm</h2>
+      <p class="section-desc">Những học sinh có tổ hợp dữ liệu cần được chú ý theo hệ thống rule-based.</p>
+      <div class="alerts-list" id="alertsList">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+    <!-- SECTION: XU HƯỚNG -->
+    <section class="dash-section" id="section-trends">
+      <h2 class="section-h2">📈 Xu hướng theo thời gian</h2>
+      <div class="trends-grid">
+        <div class="dash-chart-card full">
+          <div class="chart-title">Cảm xúc trung bình toàn trường theo ngày (7 ngày)</div>
+          <canvas id="trendEmotionChart" height="200"></canvas>
+        </div>
+        <div class="dash-chart-card full">
+          <div class="chart-title">Giấc ngủ & Mạng xã hội trung bình (7 ngày)</div>
+          <canvas id="trendSleepSocialChart" height="200"></canvas>
+        </div>
+        <div class="dash-chart-card full">
+          <div class="chart-title">Stress & Áp lực học tập trung bình (7 ngày)</div>
+          <canvas id="trendStressChart" height="200"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: KHẢO SÁT -->
+    <section class="dash-section" id="section-surveys">
+      <h2 class="section-h2">📋 Kết quả khảo sát WHO-5 & PSS</h2>
+      <div class="survey-stats">
+        <div class="survey-stat-card">
+          <div class="survey-stat-title">WHO-5 Trung bình</div>
+          <div class="survey-stat-num green">62/100</div>
+          <div class="survey-stat-sub">Trên ngưỡng khuyến cáo (≥52)</div>
+        </div>
+        <div class="survey-stat-card">
+          <div class="survey-stat-title">PSS Trung bình</div>
+          <div class="survey-stat-num yellow">18/40</div>
+          <div class="survey-stat-sub">Mức stress trung bình</div>
+        </div>
+        <div class="survey-stat-card">
+          <div class="survey-stat-title">Đã hoàn thành</div>
+          <div class="survey-stat-num blue">89/124</div>
+          <div class="survey-stat-sub">Tỷ lệ hoàn thành: 72%</div>
+        </div>
+      </div>
+      <div class="dash-chart-card full" style="margin-top:24px">
+        <div class="chart-title">Phân phối điểm WHO-5</div>
+        <canvas id="who5Chart" height="200"></canvas>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Chi tiết học sinh -->
+  <div class="modal-overlay" id="studentModal" onclick="closeModal(event)">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeStudentModal()">✕</button>
+      <div class="modal-content" id="modalContent">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/app.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
