@@ -10,11 +10,26 @@ Project đã có cấu hình Vercel. Để deploy:
    - `JWT_SECRET`: chuỗi bí mật dài, tự tạo riêng.
    - `INITIAL_TEACHER_USERNAME` và `INITIAL_TEACHER_PASSWORD`: tài khoản giáo viên ban đầu.
    - `INITIAL_TEACHER_NAME`: không bắt buộc.
+   - `SUPABASE_URL` và `SUPABASE_SECRET_KEY`: kết nối database; xem hướng dẫn bên dưới.
    - `GROQ_API_KEY` / `GROQ_MODEL` hoặc `GEMINI_API_KEY` / `GEMINI_MODEL`: không bắt buộc, dùng để bật AI.
    - `SCHOOL_CODE`: nếu ứng dụng sử dụng mã trường.
 4. Bấm **Redeploy** sau khi thêm hoặc thay đổi biến môi trường. Vercel sẽ cấp link dạng `ten-du-an.vercel.app`.
 
-**Lưu ý dữ liệu:** Vercel chạy backend dạng serverless. Project hiện lưu tài khoản, check-in và khảo sát trong file JSON; trên Vercel các file này nằm trong thư mục tạm và có thể mất khi function khởi động lại. Vì vậy bản deploy hiện tại phù hợp để xem thử, chưa phù hợp để lưu dữ liệu thật. Muốn giữ dữ liệu ổn định cần chuyển sang database trước khi dùng thực tế.
+### Cấu hình database Supabase để đồng bộ dữ liệu
+
+Vercel chạy backend dạng serverless nên không thể dùng file JSON làm nơi lưu dữ liệu dùng chung. Project cần một database Supabase để tài khoản, check-in và khảo sát của học sinh luôn được trang giáo viên đọc từ cùng một nguồn.
+
+1. Tạo project tại [supabase.com](https://supabase.com).
+2. Trong Supabase, mở **SQL Editor → New query**, sao chép toàn bộ nội dung `SUPABASE_SCHEMA.sql` vào query rồi bấm **Run**.
+3. Mở **Project Settings → API** (hoặc **Data API**):
+   - Lấy **Project URL** để làm giá trị `SUPABASE_URL`.
+   - Lấy **Secret key** (thường bắt đầu bằng `sb_secret_`) để làm giá trị `SUPABASE_SECRET_KEY`. Không dùng Publishable key.
+4. Trong Vercel, mở **Project → Settings → Environment Variables** và thêm cả hai biến trên cho **Production**. `SUPABASE_SECRET_KEY` là bí mật máy chủ: tuyệt đối không đưa vào frontend, GitHub hoặc chat.
+5. Vào **Deployments → Redeploy** để áp dụng cấu hình mới.
+
+Ứng dụng tự tạo tài khoản giáo viên ban đầu trong database khi bảng người dùng còn trống, dùng `INITIAL_TEACHER_USERNAME` và `INITIAL_TEACHER_PASSWORD`. Đăng ký học sinh/check-in mới sẽ được lưu vào Supabase và trang giáo viên sẽ thấy khi làm mới.
+
+**Dữ liệu cũ không tự chuyển sang database.** Dữ liệu lưu trên filesystem tạm của các lần chạy Vercel trước có thể đã mất; các tài khoản cần đăng ký/tạo lại sau khi database hoạt động. Những lần đăng ký hoặc check-in sau khi chuyển đổi sẽ được chia sẻ giữa các function và thiết bị.
 
 Biểu đồ của học sinh và biểu đồ lịch sử trong chi tiết học sinh ở trang giáo viên dùng cùng các bản ghi check-in; mỗi điểm là một lần check-in. Trang xu hướng toàn trường vẫn tổng hợp theo ngày và hiển thị số lượt check-in trong ngày.
 
