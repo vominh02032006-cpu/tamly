@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       banner.innerHTML = `✅ Bạn đã check-in hôm nay lúc ${new Date(today.date).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}. <a href="result.html" style="color:var(--primary);font-weight:600">Xem kết quả →</a> hoặc check-in lại để cập nhật.`;
       document.getElementById('step1')?.prepend(banner);
     }
-  } catch {}
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
 });
 
 function updateProgress(step) {

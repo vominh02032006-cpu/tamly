@@ -4,6 +4,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const cors    = require('cors');
 const fs      = require('fs');
+const os      = require('os');
 const path    = require('path');
 
 const app = express();
@@ -13,72 +14,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const IS_VERCEL  = process.env.VERCEL === '1';
 const JWT_SECRET = process.env.JWT_SECRET || (IS_VERCEL ? '' : 'moodtok_secret');
-if (!JWT_SECRET) throw new Error('Thiếu JWT_SECRET trong cấu hình môi trường Vercel.');
-const DB_PATH = path.join(__dirname, 'data');
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const DATA_TABLES = {
-  'users.json': 'moodtok_users',
-  'checkins.json': 'moodtok_checkins',
-  'surveys.json': 'moodtok_surveys'
-};
+const DB_PATH = IS_VERCEL
+  ? path.join(os.tmpdir(), 'moodtok-data')
+  : path.join(__dirname, 'data');
 
 // ── Khởi tạo thư mục & file dữ liệu ──────────────────────────────
-if (!IS_VERCEL && !fs.existsSync(DB_PATH)) fs.mkdirSync(DB_PATH, { recursive: true });
-
-function hasSupabaseConfig() {
-  return Boolean(SUPABASE_URL && SUPABASE_SECRET_KEY);
-}
-
-async function supabaseRequest(table, query, method = 'GET', body, prefer) {
-  if (!hasSupabaseConfig()) {
-    throw new Error('Thiếu SUPABASE_URL hoặc SUPABASE_SECRET_KEY.');
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    method,
-    headers: {
-      apikey: SUPABASE_SECRET_KEY,
-      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-      'Content-Type': 'application/json',
-      ...(prefer ? { Prefer: prefer } : {})
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) })
-  });
-  const text = await response.text();
-  let result = null;
-  if (text) {
-    try {
-      result = JSON.parse(text);
-    } catch {
-      throw new Error(`Supabase trả dữ liệu không hợp lệ (${response.status}).`);
-    }
-  }
-  if (!response.ok) {
-    const detail = result?.message || result?.hint || `HTTP ${response.status}`;
-    const error = new Error(`Supabase ${table}: ${detail}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result;
-}
+if (!fs.existsSync(DB_PATH)) fs.mkdirSync(DB_PATH, { recursive: true });
 
 async function readJSON(file) {
-  if (IS_VERCEL) {
-    const table = DATA_TABLES[file];
-    if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-    const records = [];
-    const pageSize = 1000;
-    for (let offset = 0; ; offset += pageSize) {
-      const rows = await supabaseRequest(
-        table,
-        `select=data&order=id.asc&limit=${pageSize}&offset=${offset}`
-      );
-      records.push(...rows.map(row => row.data));
-      if (rows.length < pageSize) return records;
-    }
-  }
-
   const fp = path.join(DB_PATH, file);
   if (!fs.existsSync(fp)) return [];
   return JSON.parse(fs.readFileSync(fp, 'utf8'));
@@ -88,31 +31,10 @@ function writeJSON(file, data) {
   fs.writeFileSync(path.join(DB_PATH, file), JSON.stringify(data, null, 2));
 }
 
-function databaseRow(file, record) {
-  const row = { id: record.id, data: record };
-  if (file === 'users.json') row.username = record.username;
-  if (file === 'checkins.json') {
-    row.student_id = record.studentId;
-    row.date = record.date;
-  }
-  if (file === 'surveys.json') {
-    row.student_id = record.studentId;
-    row.date = record.date;
-  }
-  return row;
-}
-
 async function insertRecord(file, record) {
-  if (!IS_VERCEL) {
-    const records = await readJSON(file);
-    records.push(record);
-    writeJSON(file, records);
-    return record;
-  }
-
-  const table = DATA_TABLES[file];
-  if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-  await supabaseRequest(table, 'select=id', 'POST', databaseRow(file, record), 'return=minimal');
+  const records = await readJSON(file);
+  records.push(record);
+  writeJSON(file, records);
   return record;
 }
 
@@ -122,67 +44,26 @@ async function updateRecord(file, id, changes) {
   if (!current) return null;
   const updated = { ...current, ...changes };
 
-  if (!IS_VERCEL) {
-    writeJSON(file, records.map(record => record.id === id ? updated : record));
-    return updated;
-  }
-
-  const table = DATA_TABLES[file];
-  if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-  const query = new URLSearchParams({ id: `eq.${id}`, select: 'id' }).toString();
-  const rows = await supabaseRequest(
-    table,
-    query,
-    'PATCH',
-    databaseRow(file, updated),
-    'return=representation'
-  );
-  return rows.length ? updated : null;
+  writeJSON(file, records.map(record => record.id === id ? updated : record));
+  return updated;
 }
 
 async function deleteRecord(file, id) {
-  if (!IS_VERCEL) {
-    const records = await readJSON(file);
-    const remaining = records.filter(record => record.id !== id);
-    writeJSON(file, remaining);
-    return records.length - remaining.length;
-  }
-
-  const table = DATA_TABLES[file];
-  if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-  const query = new URLSearchParams({ id: `eq.${id}`, select: 'id' }).toString();
-  const rows = await supabaseRequest(table, query, 'DELETE', undefined, 'return=representation');
-  return rows.length;
+  const records = await readJSON(file);
+  const remaining = records.filter(record => record.id !== id);
+  writeJSON(file, remaining);
+  return records.length - remaining.length;
 }
 
 async function deleteStudentCheckins(studentId) {
-  if (!IS_VERCEL) {
-    const checkins = await readJSON('checkins.json');
-    const remaining = checkins.filter(checkin => checkin.studentId !== studentId);
-    writeJSON('checkins.json', remaining);
-    return checkins.length - remaining.length;
-  }
-
-  const query = new URLSearchParams({
-    student_id: `eq.${studentId}`,
-    select: 'id'
-  }).toString();
-  const rows = await supabaseRequest(
-    DATA_TABLES['checkins.json'],
-    query,
-    'DELETE',
-    undefined,
-    'return=representation'
-  );
-  return rows.length;
+  const checkins = await readJSON('checkins.json');
+  const remaining = checkins.filter(checkin => checkin.studentId !== studentId);
+  writeJSON('checkins.json', remaining);
+  return checkins.length - remaining.length;
 }
 
 // Seed tài khoản mặc định nếu chưa có
 async function seedUsers() {
-  if (IS_VERCEL && !hasSupabaseConfig()) {
-    throw new Error('Cấu hình SUPABASE_URL và SUPABASE_SECRET_KEY để lưu dữ liệu ổn định trên Vercel.');
-  }
-
   let users = await readJSON('users.json');
   if (users.length === 0) {
     const username = IS_VERCEL ? process.env.INITIAL_TEACHER_USERNAME : 'admin';
@@ -199,34 +80,30 @@ async function seedUsers() {
           createdAt: new Date().toISOString()
         }
       ];
-      if (IS_VERCEL) {
-        try {
-          await insertRecord('users.json', users[0]);
-        } catch (error) {
-          if (error.status !== 409 || (await readJSON('users.json')).length === 0) throw error;
-        }
-      } else {
-        writeJSON('users.json', users);
-      }
+      writeJSON('users.json', users);
       console.log('✅ Đã tạo tài khoản giáo viên ban đầu');
     } else {
       console.warn('⚠️  Chưa tạo giáo viên ban đầu. Cấu hình INITIAL_TEACHER_USERNAME và INITIAL_TEACHER_PASSWORD.');
     }
   }
-  if (!IS_VERCEL) {
-    if (!fs.existsSync(path.join(DB_PATH, 'checkins.json'))) writeJSON('checkins.json', []);
-    if (!fs.existsSync(path.join(DB_PATH, 'surveys.json'))) writeJSON('surveys.json', []);
-  }
+  if (!fs.existsSync(path.join(DB_PATH, 'checkins.json'))) writeJSON('checkins.json', []);
+  if (!fs.existsSync(path.join(DB_PATH, 'surveys.json'))) writeJSON('surveys.json', []);
 }
-const storageReady = seedUsers();
+const storageReady = seedUsers().then(
+  () => null,
+  error => error
+);
 
 app.use('/api', async (req, res, next) => {
-  try {
-    await storageReady;
-    next();
-  } catch (error) {
-    next(error);
+  if (!JWT_SECRET) {
+    return res.status(503).json({
+      error: 'Thiếu JWT_SECRET trên Vercel. Hãy thêm biến môi trường rồi deploy lại.'
+    });
   }
+
+  const error = await storageReady;
+  if (error) return next(error);
+  next();
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -893,7 +770,7 @@ const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`\n🧠 MoodTok server đang chạy tại: http://localhost:${PORT}`);
-    console.log(`📁 Dữ liệu lưu tại: ${IS_VERCEL ? 'Supabase' : DB_PATH}`);
+    console.log(`📁 Dữ liệu lưu tại: ${DB_PATH}`);
     console.log('🔑 Tài khoản giáo viên cấu hình ban đầu qua biến môi trường.');
     if (isAIConfigured()) {
       const p = getAIProvider();
