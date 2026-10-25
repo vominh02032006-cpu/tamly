@@ -43,7 +43,7 @@
           <tr>
             <th>Học sinh</th><th>Lớp</th><th>Ngày làm</th>
             <th>WHO-5</th><th>Xếp loại WHO-5</th>
-            <th>PSS</th><th>Xếp loại Stress</th>
+            <th>PSS</th><th>Xếp loại Stress</th><th>Chi tiết</th>
           </tr>
         </thead>
         <tbody id="tblBody"></tbody>
@@ -55,9 +55,33 @@
 <div id="toast" class="toast"></div>
 <script src="js/api.js"></script>
 <script src="js/sidebar.js"></script>
+<script src="js/survey-questions.js"></script>
 <script>
 let charts = {};
 function dc(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+function renderAnswers(answers, config) {
+  if (!Array.isArray(answers) || answers.length !== config.questions.length) {
+    return '<p style="color:var(--muted)">Khảo sát này được thực hiện trước khi hệ thống lưu câu trả lời chi tiết.</p>';
+  }
+  return `<ol style="margin:0;padding-left:22px">${config.questions.map((question, index) => `
+    <li style="margin:8px 0">
+      <strong>${escapeHtml(question)}</strong><br>
+      <span style="color:var(--muted)">Chọn: ${escapeHtml(config.labels[answers[index]] ?? 'Không rõ')}</span>
+    </li>`).join('')}
+  </ol>`;
+}
+
+function toggleAnswers(index) {
+  const row = document.getElementById(`survey-answers-${index}`);
+  if (row) row.hidden = !row.hidden;
+}
 
 async function loadPage() {
   try {
@@ -128,20 +152,29 @@ async function loadPage() {
     });
 
     // Bảng chi tiết
-    document.getElementById('tblBody').innerHTML = surveys.map(x => {
+    document.getElementById('tblBody').innerHTML = surveys.map((x, index) => {
       const w5cls   = x.who5Score >= 68 ? '#22c55e' : x.who5Score >= 52 ? '#f59e0b' : '#ef4444';
       const w5lbl   = x.who5Score >= 68 ? '✅ Tốt' : x.who5Score >= 52 ? '⚠️ Trung bình' : '🔴 Cần chú ý';
       const pcls    = x.pssScore  <= 13 ? '#22c55e' : x.pssScore <= 26 ? '#f59e0b' : '#ef4444';
       const plbl    = x.pssScore  <= 13 ? '✅ Thấp' : x.pssScore <= 26 ? '⚠️ Trung bình' : '🔴 Cao';
       return `<tr>
-        <td><strong>${x.studentName}</strong></td>
-        <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:6px;font-size:.78rem">${x.class||'–'}</span></td>
-        <td style="color:var(--muted);font-size:.82rem">${fmtDate(x.date)}</td>
-        <td><strong style="color:${w5cls};font-size:1rem">${x.who5Score}</strong><span style="color:var(--muted);font-size:.78rem">/100</span></td>
-        <td><span style="background:${w5cls}22;color:${w5cls};padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:600">${w5lbl}</span></td>
-        <td><strong style="color:${pcls};font-size:1rem">${x.pssScore}</strong><span style="color:var(--muted);font-size:.78rem">/40</span></td>
-        <td><span style="background:${pcls}22;color:${pcls};padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:600">${plbl}</span></td>
-      </tr>`;
+          <td><strong>${escapeHtml(x.studentName)}</strong></td>
+          <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:6px;font-size:.78rem">${escapeHtml(x.class||'–')}</span></td>
+          <td style="color:var(--muted);font-size:.82rem">${fmtDate(x.date)}</td>
+          <td><strong style="color:${w5cls};font-size:1rem">${x.who5Score}</strong><span style="color:var(--muted);font-size:.78rem">/100</span></td>
+          <td><span style="background:${w5cls}22;color:${w5cls};padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:600">${w5lbl}</span></td>
+          <td><strong style="color:${pcls};font-size:1rem">${x.pssScore}</strong><span style="color:var(--muted);font-size:.78rem">/40</span></td>
+          <td><span style="background:${pcls}22;color:${pcls};padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:600">${plbl}</span></td>
+          <td><button class="btn-icon" type="button" onclick="toggleAnswers(${index})">Xem câu trả lời</button></td>
+        </tr>
+        <tr id="survey-answers-${index}" hidden>
+          <td colspan="8" style="background:var(--bg);padding:16px">
+            <strong>${escapeHtml(x.studentName)} – WHO-5</strong>
+            ${renderAnswers(x.who5Answers, SURVEY_CONFIG.who5)}
+            <strong style="display:block;margin-top:16px">PSS-10</strong>
+            ${renderAnswers(x.pssAnswers, SURVEY_CONFIG.pss)}
+          </td>
+        </tr>`;
     }).join('');
 
   } catch(e) { showToast(e.message, 'error'); }

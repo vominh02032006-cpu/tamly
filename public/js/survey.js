@@ -1,49 +1,25 @@
 /* ===== survey.js ===== */
 
-const WHO5_QS = [
-  'Tôi cảm thấy vui vẻ và tinh thần thoải mái',
-  'Tôi cảm thấy bình tĩnh và thư giãn',
-  'Tôi cảm thấy tích cực và năng động',
-  'Tôi ngủ ngon giấc và cảm thấy sảng khoái khi thức dậy',
-  'Cuộc sống hằng ngày của tôi chứa đựng nhiều điều thú vị'
-];
-const PSS_QS = [
-  'Bạn cảm thấy bị quá tải bởi những điều ngoài tầm kiểm soát?',
-  'Bạn khó kiểm soát những vấn đề quan trọng trong cuộc sống?',
-  'Bạn cảm thấy căng thẳng và lo âu?',
-  'Bạn cảm thấy mọi thứ đang chồng chất quá nhiều?',
-  'Bạn có thể tự điều phối mọi thứ trong cuộc sống? ↩',
-  'Bạn cảm thấy mình kiểm soát được mọi thứ? ↩',
-  'Bạn quản lý được sự tức giận và khó chịu của mình? ↩',
-  'Bạn cảm thấy căng thẳng đến mức không thể tập trung?',
-  'Bạn lo lắng về những điều không thể kiểm soát?',
-  'Bạn cảm thấy bản thân bị chùng xuống bởi khó khăn?'
-];
-
 let who5A = new Array(5).fill(null);
 let pssA  = new Array(10).fill(null);
 
 document.addEventListener('DOMContentLoaded', () => {
   requireAuth('student');
-  renderQs('who5-questions', WHO5_QS, 6, 'who5', who5A);
-  renderQs('pss-questions',  PSS_QS,  5, 'pss',  pssA);
+  renderQs('who5-questions', SURVEY_CONFIG.who5, 'who5', who5A);
+  renderQs('pss-questions', SURVEY_CONFIG.pss, 'pss', pssA);
 });
 
-function renderQs(containerId, questions, maxOpt, prefix, answers) {
+function renderQs(containerId, config, prefix, answers) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  const maxOpt = config.labels.length;
 
-  // Nhãn cho WHO-5 (0-5)
-  const who5Labels = ['Không bao giờ','Hiếm khi','Đôi khi','Khá thường','Thường xuyên','Luôn luôn'];
-  // Nhãn cho PSS (0-4)
-  const pssLabels  = ['Không bao giờ','Hiếm khi','Đôi khi','Khá thường','Rất thường'];
-
-  el.innerHTML = questions.map((q, qi) => `
+  el.innerHTML = config.questions.map((q, qi) => `
     <div class="sq" id="${prefix}-q-${qi}">
       <div class="sq-text">${qi+1}. ${q}</div>
       <div class="sq-opts">
         ${Array.from({length:maxOpt}, (_, oi) => {
-          const label = maxOpt === 6 ? who5Labels[oi] : pssLabels[oi];
+          const label = config.labels[oi];
           return `<div class="sq-opt" onclick="pick('${prefix}',${qi},${oi},${maxOpt})" id="${prefix}-${qi}-${oi}">
             ${oi}<span class="sq-label">${label}</span>
           </div>`;

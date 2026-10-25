@@ -25,6 +25,8 @@ Local, ứng dụng tiếp tục dùng JSON trong `data/`; không cần đặt `
 
 Biểu đồ của học sinh và biểu đồ lịch sử trong chi tiết học sinh ở trang giáo viên dùng cùng các bản ghi check-in; mỗi điểm là một lần check-in. Trang xu hướng toàn trường vẫn tổng hợp theo ngày và hiển thị số lượt check-in trong ngày.
 
+Trang **Khảo sát HS** của giáo viên có thể mở từng lượt để xem lựa chọn theo câu WHO-5 và PSS-10. Các lượt khảo sát cũ đã lưu trước khi tính năng này được bổ sung chỉ có điểm tổng, không thể khôi phục lựa chọn từng câu.
+
 **Bảo mật:** Không commit `.env` hoặc mật khẩu thật vào mã nguồn.
 
 ## ⚠️ QUAN TRỌNG

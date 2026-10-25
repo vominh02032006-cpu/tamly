@@ -741,8 +741,11 @@ app.get('/api/dashboard/trends', auth, teacherOnly, async (req, res) => {
 
 app.post('/api/survey', auth, async (req, res) => {
   const { who5Answers, pssAnswers } = req.body;
-  if (!who5Answers || !pssAnswers)
-    return res.status(400).json({ error: 'Thiếu dữ liệu khảo sát' });
+  if (!Array.isArray(who5Answers) || who5Answers.length !== 5
+      || who5Answers.some(answer => !Number.isInteger(answer) || answer < 0 || answer > 5)
+      || !Array.isArray(pssAnswers) || pssAnswers.length !== 10
+      || pssAnswers.some(answer => !Number.isInteger(answer) || answer < 0 || answer > 4))
+    return res.status(400).json({ error: 'Dữ liệu khảo sát không hợp lệ' });
 
   const who5Raw   = who5Answers.reduce((s, a) => s + (a || 0), 0);
   const who5Score = who5Raw * 4;
@@ -759,6 +762,8 @@ app.post('/api/survey', auth, async (req, res) => {
     studentName:req.user.name,
     class:      req.user.class,
     date:       new Date().toISOString(),
+    who5Answers,
+    pssAnswers,
     who5Raw, who5Score, pssScore
   };
 
