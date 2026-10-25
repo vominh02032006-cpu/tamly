@@ -5,6 +5,7 @@ const jwt     = require('jsonwebtoken');
 const cors    = require('cors');
 const fs      = require('fs');
 const path    = require('path');
+const os      = require('os');
 
 const app = express();
 app.use(cors());
@@ -14,176 +15,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 const IS_VERCEL  = process.env.VERCEL === '1';
 const JWT_SECRET = process.env.JWT_SECRET || (IS_VERCEL ? '' : 'moodtok_secret');
 if (!JWT_SECRET) throw new Error('Thiếu JWT_SECRET trong cấu hình môi trường Vercel.');
-const DB_PATH = path.join(__dirname, 'data');
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const DATA_TABLES = {
-  'users.json': 'moodtok_users',
-  'checkins.json': 'moodtok_checkins',
-  'surveys.json': 'moodtok_surveys'
-};
+const DB_PATH    = IS_VERCEL
+  ? path.join(os.tmpdir(), 'moodtok-data')
+  : path.join(__dirname, 'data');
 
 // ── Khởi tạo thư mục & file dữ liệu ──────────────────────────────
-if (!IS_VERCEL && !fs.existsSync(DB_PATH)) fs.mkdirSync(DB_PATH, { recursive: true });
+if (!fs.existsSync(DB_PATH)) fs.mkdirSync(DB_PATH);
 
-function hasSupabaseConfig() {
-  return Boolean(SUPABASE_URL && SUPABASE_SECRET_KEY);
-}
-
-async function supabaseRequest(table, query, method = 'GET', body, prefer) {
-  if (!hasSupabaseConfig()) {
-    throw new Error('Thiếu SUPABASE_URL hoặc SUPABASE_SECRET_KEY.');
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    method,
-    headers: {
-      apikey: SUPABASE_SECRET_KEY,
-      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-      'Content-Type': 'application/json',
-      ...(prefer ? { Prefer: prefer } : {})
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) })
-  });
-  const text = await response.text();
-  let result = null;
-  if (text) {
-    try {
-      result = JSON.parse(text);
-    } catch {
-      throw new Error(`Supabase trả dữ liệu không hợp lệ (${response.status}).`);
-    }
-  }
-  if (!response.ok) {
-    const detail = result?.message || result?.hint || `HTTP ${response.status}`;
-    const error = new Error(`Supabase ${table}: ${detail}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result;
-}
-
-async function readJSON(file) {
-  if (IS_VERCEL) {
-    const table = DATA_TABLES[file];
-    if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-    const records = [];
-    const pageSize = 1000;
-    for (let offset = 0; ; offset += pageSize) {
-      const rows = await supabaseRequest(
-        table,
-        `select=data&order=id.asc&limit=${pageSize}&offset=${offset}`
-      );
-      records.push(...rows.map(row => row.data));
-      if (rows.length < pageSize) return records;
-    }
-  }
-
+function readJSON(file) {
   const fp = path.join(DB_PATH, file);
   if (!fs.existsSync(fp)) return [];
-  return JSON.parse(fs.readFileSync(fp, 'utf8'));
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch { return []; }
 }
 
 function writeJSON(file, data) {
   fs.writeFileSync(path.join(DB_PATH, file), JSON.stringify(data, null, 2));
 }
 
-function databaseRow(file, record) {
-  const row = { id: record.id, data: record };
-  if (file === 'users.json') row.username = record.username;
-  if (file === 'checkins.json') {
-    row.student_id = record.studentId;
-    row.date = record.date;
-  }
-  if (file === 'surveys.json') {
-    row.student_id = record.studentId;
-    row.date = record.date;
-  }
-  return row;
-}
-
-async function insertRecord(file, record) {
-  if (!IS_VERCEL) {
-    const records = await readJSON(file);
-    records.push(record);
-    writeJSON(file, records);
-    return record;
-  }
-
-  const table = DATA_TABLES[file];
-  if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-  await supabaseRequest(table, 'select=id', 'POST', databaseRow(file, record), 'return=minimal');
-  return record;
-}
-
-async function updateRecord(file, id, changes) {
-  const records = await readJSON(file);
-  const current = records.find(record => record.id === id);
-  if (!current) return null;
-  const updated = { ...current, ...changes };
-
-  if (!IS_VERCEL) {
-    writeJSON(file, records.map(record => record.id === id ? updated : record));
-    return updated;
-  }
-
-  const table = DATA_TABLES[file];
-  if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-  const query = new URLSearchParams({ id: `eq.${id}`, select: 'id' }).toString();
-  const rows = await supabaseRequest(
-    table,
-    query,
-    'PATCH',
-    databaseRow(file, updated),
-    'return=representation'
-  );
-  return rows.length ? updated : null;
-}
-
-async function deleteRecord(file, id) {
-  if (!IS_VERCEL) {
-    const records = await readJSON(file);
-    const remaining = records.filter(record => record.id !== id);
-    writeJSON(file, remaining);
-    return records.length - remaining.length;
-  }
-
-  const table = DATA_TABLES[file];
-  if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
-  const query = new URLSearchParams({ id: `eq.${id}`, select: 'id' }).toString();
-  const rows = await supabaseRequest(table, query, 'DELETE', undefined, 'return=representation');
-  return rows.length;
-}
-
-async function deleteStudentCheckins(studentId) {
-  if (!IS_VERCEL) {
-    const checkins = await readJSON('checkins.json');
-    const remaining = checkins.filter(checkin => checkin.studentId !== studentId);
-    writeJSON('checkins.json', remaining);
-    return checkins.length - remaining.length;
-  }
-
-  const query = new URLSearchParams({
-    student_id: `eq.${studentId}`,
-    select: 'id'
-  }).toString();
-  const rows = await supabaseRequest(
-    DATA_TABLES['checkins.json'],
-    query,
-    'DELETE',
-    undefined,
-    'return=representation'
-  );
-  return rows.length;
-}
-
 // Seed tài khoản mặc định nếu chưa có
-async function seedUsers() {
-  if (IS_VERCEL && !hasSupabaseConfig()) {
-    throw new Error('Cấu hình SUPABASE_URL và SUPABASE_SECRET_KEY để lưu dữ liệu ổn định trên Vercel.');
-  }
-
-  let users = await readJSON('users.json');
+function seedUsers() {
+  let users = readJSON('users.json');
   if (users.length === 0) {
     const username = IS_VERCEL ? process.env.INITIAL_TEACHER_USERNAME : 'admin';
     const password = IS_VERCEL ? process.env.INITIAL_TEACHER_PASSWORD : 'admin123';
@@ -199,35 +50,16 @@ async function seedUsers() {
           createdAt: new Date().toISOString()
         }
       ];
-      if (IS_VERCEL) {
-        try {
-          await insertRecord('users.json', users[0]);
-        } catch (error) {
-          if (error.status !== 409 || (await readJSON('users.json')).length === 0) throw error;
-        }
-      } else {
-        writeJSON('users.json', users);
-      }
+      writeJSON('users.json', users);
       console.log('✅ Đã tạo tài khoản giáo viên ban đầu');
     } else {
       console.warn('⚠️  Chưa tạo giáo viên ban đầu. Cấu hình INITIAL_TEACHER_USERNAME và INITIAL_TEACHER_PASSWORD.');
     }
   }
-  if (!IS_VERCEL) {
-    if (!fs.existsSync(path.join(DB_PATH, 'checkins.json'))) writeJSON('checkins.json', []);
-    if (!fs.existsSync(path.join(DB_PATH, 'surveys.json'))) writeJSON('surveys.json', []);
-  }
+  if (!fs.existsSync(path.join(DB_PATH, 'checkins.json'))) writeJSON('checkins.json', []);
+  if (!fs.existsSync(path.join(DB_PATH, 'surveys.json')))  writeJSON('surveys.json', []);
 }
-const storageReady = seedUsers();
-
-app.use('/api', async (req, res, next) => {
-  try {
-    await storageReady;
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+seedUsers();
 
 // ══════════════════════════════════════════════════════════════════
 // AI – Groq (miễn phí 14400 req/ngày) + Gemini dự phòng
@@ -370,12 +202,12 @@ function teacherOnly(req, res, next) {
 // ══════════════════════════════════════════════════════════════════
 
 // ── Đăng nhập ────────────────────────────────────────────────────
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password)
     return res.status(400).json({ error: 'Vui lòng nhập đầy đủ thông tin' });
 
-  const users = await readJSON('users.json');
+  const users = readJSON('users.json');
   const user  = users.find(u => u.username === username);
   if (!user || !bcrypt.compareSync(password, user.password))
     return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
@@ -388,7 +220,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ── Đăng ký học sinh (tự đăng ký) ───────────────────────────────
-app.post('/api/auth/register-student', async (req, res) => {
+app.post('/api/auth/register-student', (req, res) => {
   const { name, username, password, studentClass } = req.body;
 
   if (!name || !username || !password || !studentClass)
@@ -400,7 +232,7 @@ app.post('/api/auth/register-student', async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: 'Mật khẩu phải có ít nhất 6 ký tự' });
 
-  const users = await readJSON('users.json');
+  let users = readJSON('users.json');
   if (users.find(u => u.username === username))
     return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác' });
 
@@ -413,12 +245,8 @@ app.post('/api/auth/register-student', async (req, res) => {
     password:  bcrypt.hashSync(password, 10),
     createdAt: new Date().toISOString()
   };
-  try {
-    await insertRecord('users.json', newStudent);
-  } catch (error) {
-    if (error.status === 409) return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác' });
-    throw error;
-  }
+  users.push(newStudent);
+  writeJSON('users.json', users);
 
   const token = jwt.sign(
     { id: newStudent.id, name: newStudent.name, role: 'student', class: newStudent.class, username: newStudent.username },
@@ -430,7 +258,7 @@ app.post('/api/auth/register-student', async (req, res) => {
 });
 
 // ── Đăng ký giáo viên (tự do, không cần mã) ─────────────────────
-app.post('/api/auth/register-teacher', async (req, res) => {
+app.post('/api/auth/register-teacher', (req, res) => {
   const { name, username, password } = req.body;
 
   if (!name || !username || !password)
@@ -442,7 +270,7 @@ app.post('/api/auth/register-teacher', async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: 'Mật khẩu phải có ít nhất 6 ký tự' });
 
-  const users = await readJSON('users.json');
+  let users = readJSON('users.json');
   if (users.find(u => u.username === username))
     return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác' });
 
@@ -455,12 +283,8 @@ app.post('/api/auth/register-teacher', async (req, res) => {
     password:  bcrypt.hashSync(password, 10),
     createdAt: new Date().toISOString()
   };
-  try {
-    await insertRecord('users.json', newTeacher);
-  } catch (error) {
-    if (error.status === 409) return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác' });
-    throw error;
-  }
+  users.push(newTeacher);
+  writeJSON('users.json', users);
 
   const token = jwt.sign(
     { id: newTeacher.id, name: newTeacher.name, role: 'teacher', class: null, username: newTeacher.username },
@@ -472,12 +296,12 @@ app.post('/api/auth/register-teacher', async (req, res) => {
 });
 
 // ── Giáo viên tạo tài khoản học sinh ────────────────────────────
-app.post('/api/auth/create-student', auth, teacherOnly, async (req, res) => {
+app.post('/api/auth/create-student', auth, teacherOnly, (req, res) => {
   const { username, name, studentClass } = req.body;
   if (!username || !name || !studentClass)
     return res.status(400).json({ error: 'Thiếu thông tin' });
 
-  const users = await readJSON('users.json');
+  let users = readJSON('users.json');
   if (users.find(u => u.username === username))
     return res.status(400).json({ error: 'Mã học sinh đã tồn tại' });
 
@@ -490,90 +314,84 @@ app.post('/api/auth/create-student', auth, teacherOnly, async (req, res) => {
     password:  bcrypt.hashSync('123456', 10),
     createdAt: new Date().toISOString()
   };
-  try {
-    await insertRecord('users.json', newStudent);
-  } catch (error) {
-    if (error.status === 409) return res.status(400).json({ error: 'Mã học sinh đã tồn tại' });
-    throw error;
-  }
+  users.push(newStudent);
+  writeJSON('users.json', users);
   res.json({ message: 'Tạo tài khoản thành công', student: { id: newStudent.id, name, username, class: studentClass, defaultPassword: '123456' } });
 });
 
 // ── Lấy danh sách học sinh (giáo viên) ───────────────────────────
-app.get('/api/auth/students', auth, teacherOnly, async (req, res) => {
-  const users = (await readJSON('users.json')).filter(u => u.role === 'student');
+app.get('/api/auth/students', auth, teacherOnly, (req, res) => {
+  const users = readJSON('users.json').filter(u => u.role === 'student');
   res.json(users.map(u => ({ id: u.id, name: u.name, username: u.username, class: u.class, createdAt: u.createdAt })));
 });
 
 // ── Cập nhật thông tin học sinh (giáo viên) ──────────────────────
-app.put('/api/auth/student/:id', auth, teacherOnly, async (req, res) => {
+app.put('/api/auth/student/:id', auth, teacherOnly, (req, res) => {
   const { name, studentClass } = req.body;
   if (!name || !studentClass)
     return res.status(400).json({ error: 'Thiếu thông tin' });
 
-  const users = await readJSON('users.json');
+  let users = readJSON('users.json');
   const idx = users.findIndex(u => u.id === req.params.id && u.role === 'student');
   if (idx === -1) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
 
-  const updated = await updateRecord('users.json', users[idx].id, {
-    name: name.trim(),
-    class: studentClass.trim()
-  });
-  if (!updated) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
-  console.log(`✏️  Đã cập nhật học sinh: ${name} (${updated.username})`);
-  res.json({ success: true, student: { id: updated.id, name: updated.name, username: updated.username, class: updated.class } });
+  users[idx].name  = name.trim();
+  users[idx].class = studentClass.trim();
+  writeJSON('users.json', users);
+  console.log(`✏️  Đã cập nhật học sinh: ${name} (${users[idx].username})`);
+  res.json({ success: true, student: { id: users[idx].id, name: users[idx].name, username: users[idx].username, class: users[idx].class } });
 });
 
 // ── Đặt lại mật khẩu học sinh (giáo viên) ────────────────────────
-app.post('/api/auth/student/:id/reset-password', auth, teacherOnly, async (req, res) => {
-  const users = await readJSON('users.json');
+app.post('/api/auth/student/:id/reset-password', auth, teacherOnly, (req, res) => {
+  let users = readJSON('users.json');
   const idx = users.findIndex(u => u.id === req.params.id && u.role === 'student');
   if (idx === -1) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
 
-  const updated = await updateRecord('users.json', users[idx].id, {
-    password: bcrypt.hashSync('123456', 10)
-  });
-  if (!updated) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
-  console.log(`🔑 Đặt lại mật khẩu: ${updated.name} (${updated.username})`);
+  users[idx].password = bcrypt.hashSync('123456', 10);
+  writeJSON('users.json', users);
+  console.log(`🔑 Đặt lại mật khẩu: ${users[idx].name} (${users[idx].username})`);
   res.json({ success: true, message: 'Mật khẩu đã được đặt lại về 123456' });
 });
 
 // ── Xóa tài khoản học sinh (giáo viên) ───────────────────────────
-app.delete('/api/auth/student/:id', auth, teacherOnly, async (req, res) => {
-  const users = await readJSON('users.json');
+app.delete('/api/auth/student/:id', auth, teacherOnly, (req, res) => {
+  let users = readJSON('users.json');
   const student = users.find(u => u.id === req.params.id && u.role === 'student');
   if (!student) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
 
-  const removedCheckins = IS_VERCEL
-    ? (await readJSON('checkins.json')).filter(c => c.studentId === req.params.id).length
-    : await deleteStudentCheckins(req.params.id);
-  const removedUsers = await deleteRecord('users.json', req.params.id);
-  if (!removedUsers) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
+  // Xóa user
+  users = users.filter(u => u.id !== req.params.id);
+  writeJSON('users.json', users);
 
-  console.log(`🗑️  Đã xóa học sinh: ${student.name} (${student.username}), ${removedCheckins} check-in bị xóa`);
+  // Xóa toàn bộ check-in của học sinh này
+  let checkins = readJSON('checkins.json');
+  const before = checkins.length;
+  checkins = checkins.filter(c => c.studentId !== req.params.id);
+  writeJSON('checkins.json', checkins);
+
+  console.log(`🗑️  Đã xóa học sinh: ${student.name} (${student.username}), ${before - checkins.length} check-in bị xóa`);
   res.json({ success: true, message: `Đã xóa tài khoản ${student.name}` });
 });
 
 // ── Lấy thông tin bản thân ───────────────────────────────────────
-app.get('/api/auth/me', auth, async (req, res) => {
-  const users = await readJSON('users.json');
+app.get('/api/auth/me', auth, (req, res) => {
+  const users = readJSON('users.json');
   const user  = users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'Không tìm thấy' });
   res.json({ id: user.id, name: user.name, role: user.role, class: user.class, username: user.username });
 });
 
 // Đổi mật khẩu
-app.post('/api/auth/change-password', auth, async (req, res) => {
+app.post('/api/auth/change-password', auth, (req, res) => {
   const { oldPassword, newPassword } = req.body;
-  const users = await readJSON('users.json');
+  let users = readJSON('users.json');
   const idx = users.findIndex(u => u.id === req.user.id);
   if (idx === -1) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
   if (!bcrypt.compareSync(oldPassword, users[idx].password))
     return res.status(400).json({ error: 'Mật khẩu cũ không đúng' });
-  const updated = await updateRecord('users.json', req.user.id, {
-    password: bcrypt.hashSync(newPassword, 10)
-  });
-  if (!updated) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+  users[idx].password = bcrypt.hashSync(newPassword, 10);
+  writeJSON('users.json', users);
   res.json({ message: 'Đổi mật khẩu thành công' });
 });
 
@@ -617,23 +435,25 @@ app.post('/api/checkin', auth, async (req, res) => {
     alerts:     getRuleAlerts({ emotion, socialHours, sleepHours, sleepQuality, studyPressure, stressLevel })
   };
 
-  await insertRecord('checkins.json', record);
+  let checkins = readJSON('checkins.json');
+  checkins.push(record);
+  writeJSON('checkins.json', checkins);
 
   res.json({ success: true, mhi, aiAnalysis, alerts: record.alerts });
 });
 
 // Lấy lịch sử check-in của học sinh hiện tại
-app.get('/api/checkin/my', auth, async (req, res) => {
-  const checkins = (await readJSON('checkins.json'))
+app.get('/api/checkin/my', auth, (req, res) => {
+  const checkins = readJSON('checkins.json')
     .filter(c => c.studentId === req.user.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
   res.json(checkins);
 });
 
 // Lấy check-in hôm nay của học sinh
-app.get('/api/checkin/today', auth, async (req, res) => {
+app.get('/api/checkin/today', auth, (req, res) => {
   const today = new Date().toDateString();
-  const checkin = (await readJSON('checkins.json'))
+  const checkin = readJSON('checkins.json')
     .filter(c => c.studentId === req.user.id)
     .find(c => new Date(c.date).toDateString() === today);
   res.json(checkin || null);
@@ -644,12 +464,9 @@ app.get('/api/checkin/today', auth, async (req, res) => {
 // ══════════════════════════════════════════════════════════════════
 
 // Tổng quan
-app.get('/api/dashboard/overview', auth, teacherOnly, async (req, res) => {
-  const [checkins, users] = await Promise.all([
-    readJSON('checkins.json'),
-    readJSON('users.json')
-  ]);
-  const students = users.filter(u => u.role === 'student');
+app.get('/api/dashboard/overview', auth, teacherOnly, (req, res) => {
+  const checkins = readJSON('checkins.json');
+  const students = readJSON('users.json').filter(u => u.role === 'student');
   const today    = new Date().toDateString();
 
   const todayCheckins = checkins.filter(c => new Date(c.date).toDateString() === today);
@@ -670,12 +487,9 @@ app.get('/api/dashboard/overview', auth, teacherOnly, async (req, res) => {
 });
 
 // Danh sách học sinh kèm check-in gần nhất
-app.get('/api/dashboard/students', auth, teacherOnly, async (req, res) => {
-  const [users, checkins] = await Promise.all([
-    readJSON('users.json'),
-    readJSON('checkins.json')
-  ]);
-  const students = users.filter(u => u.role === 'student');
+app.get('/api/dashboard/students', auth, teacherOnly, (req, res) => {
+  const students = readJSON('users.json').filter(u => u.role === 'student');
+  const checkins = readJSON('checkins.json');
 
   const result = students.map(s => {
     const myCheckins = checkins.filter(c => c.studentId === s.id)
@@ -695,12 +509,12 @@ app.get('/api/dashboard/students', auth, teacherOnly, async (req, res) => {
 });
 
 // Chi tiết 1 học sinh (giáo viên xem)
-app.get('/api/dashboard/student/:id', auth, teacherOnly, async (req, res) => {
-  const users    = await readJSON('users.json');
+app.get('/api/dashboard/student/:id', auth, teacherOnly, (req, res) => {
+  const users    = readJSON('users.json');
   const student  = users.find(u => u.id === req.params.id && u.role === 'student');
   if (!student) return res.status(404).json({ error: 'Không tìm thấy học sinh' });
 
-  const checkins = (await readJSON('checkins.json'))
+  const checkins = readJSON('checkins.json')
     .filter(c => c.studentId === req.params.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -711,17 +525,17 @@ app.get('/api/dashboard/student/:id', auth, teacherOnly, async (req, res) => {
 });
 
 // Học sinh cần quan tâm hôm nay
-app.get('/api/dashboard/alerts', auth, teacherOnly, async (req, res) => {
+app.get('/api/dashboard/alerts', auth, teacherOnly, (req, res) => {
   const today    = new Date().toDateString();
-  const checkins = (await readJSON('checkins.json'))
+  const checkins = readJSON('checkins.json')
     .filter(c => new Date(c.date).toDateString() === today && c.alerts && c.alerts.length > 0)
     .sort((a, b) => a.mhi - b.mhi);
   res.json(checkins);
 });
 
 // Xu hướng 7 ngày (toàn trường)
-app.get('/api/dashboard/trends', auth, teacherOnly, async (req, res) => {
-  const checkins = await readJSON('checkins.json');
+app.get('/api/dashboard/trends', auth, teacherOnly, (req, res) => {
+  const checkins = readJSON('checkins.json');
   const days     = [];
   for (let i = 6; i >= 0; i--) {
     const d   = new Date();
@@ -746,7 +560,7 @@ app.get('/api/dashboard/trends', auth, teacherOnly, async (req, res) => {
 // SURVEY ROUTES
 // ══════════════════════════════════════════════════════════════════
 
-app.post('/api/survey', auth, async (req, res) => {
+app.post('/api/survey', auth, (req, res) => {
   const { who5Answers, pssAnswers } = req.body;
   if (!who5Answers || !pssAnswers)
     return res.status(400).json({ error: 'Thiếu dữ liệu khảo sát' });
@@ -769,19 +583,21 @@ app.post('/api/survey', auth, async (req, res) => {
     who5Raw, who5Score, pssScore
   };
 
-  await insertRecord('surveys.json', record);
+  let surveys = readJSON('surveys.json');
+  surveys.push(record);
+  writeJSON('surveys.json', surveys);
   res.json({ success: true, who5Score, pssScore });
 });
 
-app.get('/api/survey/my', auth, async (req, res) => {
-  const surveys = (await readJSON('surveys.json'))
+app.get('/api/survey/my', auth, (req, res) => {
+  const surveys = readJSON('surveys.json')
     .filter(s => s.studentId === req.user.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
   res.json(surveys);
 });
 
-app.get('/api/survey/all', auth, teacherOnly, async (req, res) => {
-  res.json((await readJSON('surveys.json')).sort((a, b) => new Date(b.date) - new Date(a.date)));
+app.get('/api/survey/all', auth, teacherOnly, (req, res) => {
+  res.json(readJSON('surveys.json').sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
 // ── Kiểm tra trạng thái AI ────────────────────────────────────────
@@ -807,7 +623,7 @@ app.post('/api/ai/chat', auth, async (req, res) => {
   }
 
   // Lấy 3 check-in gần nhất để AI có context
-  const checkins = (await readJSON('checkins.json'))
+  const checkins = readJSON('checkins.json')
     .filter(c => c.studentId === req.user.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 3);
@@ -882,19 +698,13 @@ Yêu cầu:
 - Ưu tiên vấn đề có điểm thấp nhất trong 6 yếu tố`;
 }
 
-app.use((error, req, res, next) => {
-  console.error('API error:', error.message);
-  if (res.headersSent) return next(error);
-  res.status(500).json({ error: 'Lỗi máy chủ hoặc cơ sở dữ liệu. Vui lòng thử lại sau.' });
-});
-
 // ── Start server ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`\n🧠 MoodTok server đang chạy tại: http://localhost:${PORT}`);
-    console.log(`📁 Dữ liệu lưu tại: ${IS_VERCEL ? 'Supabase' : DB_PATH}`);
-    console.log('🔑 Tài khoản giáo viên cấu hình ban đầu qua biến môi trường.');
+    console.log(`📁 Dữ liệu lưu tại: ${DB_PATH}`);
+    console.log(`🔑 Tài khoản giáo viên mặc định: admin / admin123`);
     if (isAIConfigured()) {
       const p = getAIProvider();
       const m = p === 'groq' ? GROQ_MODEL : GEMINI_MODEL;
