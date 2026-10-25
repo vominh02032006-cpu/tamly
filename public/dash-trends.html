@@ -23,7 +23,7 @@
     </div>
     <div id="chartsWrap" style="display:none">
       <div class="chart-card full" style="margin-bottom:14px">
-        <div class="chart-card-title">💚 MHI trung bình & số học sinh check-in mỗi ngày (7 ngày)</div>
+        <div class="chart-card-title">💚 MHI trung bình & số lượt check-in mỗi ngày (7 ngày)</div>
         <canvas id="mhiChart" height="200"></canvas>
       </div>
       <div class="chart-card full" style="margin-bottom:14px">
@@ -43,7 +43,7 @@
       <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px">📋 Bảng tóm tắt 7 ngày</h3>
       <div class="tbl-wrap">
         <table class="data-tbl">
-          <thead><tr><th>Ngày</th><th>Số HS</th><th>MHI TB</th><th>Cảm xúc TB</th><th>Ngủ TB</th><th>MXH TB</th><th>Stress TB</th><th>Áp lực TB</th></tr></thead>
+          <thead><tr><th>Ngày</th><th>Lượt check-in</th><th>MHI TB</th><th>Cảm xúc TB</th><th>Ngủ TB</th><th>MXH TB</th><th>Stress TB</th><th>Áp lực TB</th></tr></thead>
           <tbody id="summaryBody"></tbody>
         </table>
       </div>
@@ -74,9 +74,9 @@ async function loadPage() {
     ch.mhi = new Chart(document.getElementById('mhiChart'), { type:'line',
       data:{ labels, datasets:[
         { label:'MHI TB', data:trends.map(t=>t.avgMHI), borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:true, tension:0.4, pointRadius:5, spanGaps:true, yAxisID:'y' },
-        { label:'Số HS', data:trends.map(t=>t.count), borderColor:'#94a3b8', borderDash:[4,4], fill:false, tension:0, pointRadius:4, spanGaps:true, yAxisID:'y2' }
+        { label:'Số lượt check-in', data:trends.map(t=>t.count), borderColor:'#94a3b8', borderDash:[4,4], fill:false, tension:0, pointRadius:4, spanGaps:true, yAxisID:'y2' }
       ]},
-      options:{ ...lo, scales:{ x:{grid:{display:false}}, y:{min:0,max:100,grid:{color:'#f1f5f9'},title:{display:true,text:'MHI'}}, y2:{position:'right',grid:{display:false},title:{display:true,text:'Số HS'}} } }
+      options:{ ...lo, scales:{ x:{grid:{display:false}}, y:{min:0,max:100,grid:{color:'#f1f5f9'},title:{display:true,text:'MHI'}}, y2:{position:'right',grid:{display:false},title:{display:true,text:'Lượt check-in'}} } }
     });
 
     dc('emoChart');

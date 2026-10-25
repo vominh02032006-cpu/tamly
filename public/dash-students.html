@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="css/teacher.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="teacher-page">
 <div id="sidebar-mount"></div>
@@ -43,9 +44,9 @@
     <div id="countInfo" style="font-size:.82rem;color:var(--muted);margin-top:10px"></div>
   </div>
 </main>
-<div class="modal-overlay" id="stuModal" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal-overlay" id="stuModal" onclick="if(event.target===this)closeStudentModal()">
   <div class="modal-box">
-    <button class="modal-close" onclick="document.getElementById('stuModal').classList.remove('open')">✕</button>
+    <button class="modal-close" onclick="closeStudentModal()">✕</button>
     <div id="modalContent"></div>
   </div>
 </div>
@@ -54,6 +55,8 @@
 <script src="js/sidebar.js"></script>
 <script>
 let allStudents = [];
+let studentTrendCharts = [];
+let selectedStudentId = null;
 
 async function loadPage() {
   try {
@@ -142,6 +145,8 @@ function exportCSV() {
 async function openModal(id) {
   const modal   = document.getElementById('stuModal');
   const content = document.getElementById('modalContent');
+  selectedStudentId = id;
+  destroyStudentTrendCharts();
   content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">⏳ Đang tải…</div>';
   modal.classList.add('open');
   try {
@@ -192,6 +197,13 @@ async function openModal(id) {
       <div class="modal-row"><span>📱 Mạng xã hội</span><span>${latest.socialHours}h</span></div>
       <div class="modal-row"><span>📚 Áp lực</span><span>Mức ${latest.studyPressure}/4</span></div>
       <div class="modal-row"><span>🧘 Stress</span><span>${latest.stressLevel}/10</span></div>
+      <div class="modal-sec">📈 Xu hướng theo từng lần check-in</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px">
+        <div class="chart-card"><div class="chart-card-title">💬 Cảm xúc</div><canvas id="studentEmotionTrend" height="150"></canvas></div>
+        <div class="chart-card"><div class="chart-card-title">😴 Giờ ngủ</div><canvas id="studentSleepTrend" height="150"></canvas></div>
+        <div class="chart-card"><div class="chart-card-title">📱 Mạng xã hội (h)</div><canvas id="studentSocialTrend" height="150"></canvas></div>
+        <div class="chart-card"><div class="chart-card-title">📚 Stress & Áp lực</div><canvas id="studentStressTrend" height="150"></canvas></div>
+      </div>
       <div class="modal-sec">⚠️ Cảnh báo</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">${aHtml}</div>
       ${latest.shareText?`<div class="modal-sec">💬 Chia sẻ</div><div class="modal-share">"${latest.shareText}"</div>`:''}
@@ -201,10 +213,96 @@ async function openModal(id) {
       <table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f8fafc"><th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Ngày</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">Cảm xúc</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">Ngủ</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">Stress</th><th style="padding:6px 10px;border-bottom:1px solid var(--border)">MHI</th></tr></thead><tbody>${hRows}</tbody></table>
       <div style="background:#fffbeb;border-radius:8px;padding:9px 12px;font-size:.78rem;color:#78350f;margin-top:14px">⚠️ Thông tin chỉ mang tính tham khảo.</div>
     `;
+    renderStudentCheckinCharts(checkins);
   } catch(e) { content.innerHTML = `<div style="text-align:center;padding:32px;color:#ef4444">❌ ${e.message}</div>`; }
 }
 
+function renderStudentCheckinCharts(history) {
+  const slice = history.slice(0, 30).reverse();
+  const firstCheckin = history.length - slice.length + 1;
+  const labels = slice.map((_, index) => `Lần ${firstCheckin + index}`);
+  const baseOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: items => `${items[0].label} · ${fmtDate(slice[items[0].dataIndex].date)}`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, title: { display: true, text: 'Lần check-in' } },
+      y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+    }
+  };
+  const addChart = (id, type, values, color, yOptions = {}) => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    studentTrendCharts.push(new Chart(canvas, {
+      type,
+      data: { labels, datasets: [{
+        data: values,
+        borderColor: color,
+        backgroundColor: type === 'bar' ? `${color}b3` : `${color}14`,
+        fill: type === 'line',
+        tension: 0.35,
+        pointRadius: 4,
+        borderRadius: type === 'bar' ? 5 : 0
+      }] },
+      options: {
+        ...baseOptions,
+        scales: {
+          ...baseOptions.scales,
+          y: { ...baseOptions.scales.y, ...yOptions }
+        }
+      }
+    }));
+  };
+
+  addChart('studentEmotionTrend', 'line', slice.map(c => c.emotion), '#6366f1', {
+    min: 0, max: 5,
+    ticks: { stepSize: 1, callback: value => ['😞','😰','😔','😐','😊','😄'][value] || value }
+  });
+  addChart('studentSleepTrend', 'bar', slice.map(c => c.sleepHours), '#22c55e', {
+    min: 0, max: 12, ticks: { callback: value => `${value}h` }
+  });
+  addChart('studentSocialTrend', 'line', slice.map(c => c.socialHours), '#8b5cf6', {
+    min: 0, ticks: { callback: value => `${value}h` }
+  });
+  const stressCanvas = document.getElementById('studentStressTrend');
+  if (stressCanvas) {
+    studentTrendCharts.push(new Chart(stressCanvas, {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: 'Stress', data: slice.map(c => c.stressLevel), borderColor: '#ef4444', tension: 0.35, pointRadius: 4 },
+        { label: 'Áp lực học', data: slice.map(c => c.studyPressure), borderColor: '#f59e0b', tension: 0.35, pointRadius: 4 }
+      ] },
+      options: {
+        ...baseOptions,
+        plugins: { ...baseOptions.plugins, legend: { display: true, position: 'bottom' } },
+        scales: { ...baseOptions.scales, y: { ...baseOptions.scales.y, min: 0, max: 10 } }
+      }
+    }));
+  }
+}
+
+function destroyStudentTrendCharts() {
+  studentTrendCharts.forEach(chart => chart.destroy());
+  studentTrendCharts = [];
+}
+
+function closeStudentModal() {
+  selectedStudentId = null;
+  destroyStudentTrendCharts();
+  document.getElementById('stuModal').classList.remove('open');
+}
+
 loadPage();
+setInterval(async () => {
+  await loadPage();
+  if (selectedStudentId) await openModal(selectedStudentId);
+}, 30000);
 </script>
 
 <!-- Modal sửa học sinh -->

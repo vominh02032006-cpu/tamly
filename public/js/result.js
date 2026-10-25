@@ -275,17 +275,30 @@ function switchChartTab(period, el) {
   if (fullHistory.length > 0) renderCharts(fullHistory, +period);
 }
 
-function renderCharts(history, days) {
-  const slice = history.slice(0, days).reverse();
+function renderCharts(history, checkinCount) {
+  const slice = history.slice(0, checkinCount).reverse();
   if (!slice.length) return;
 
-  const labels  = slice.map(h => fmtDateShort(h.date));
+  const firstCheckin = history.length - slice.length + 1;
+  const labels = slice.map((_, index) => `Lần ${firstCheckin + index}`);
   const baseOpt = {
     responsive: true,
     plugins: { legend: { display: false } },
     scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      x: {
+        grid: { display: false },
+        title: { display: true, text: 'Lần check-in' },
+        ticks: { font: { size: 11 } }
+      },
       y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } }
+    }
+  };
+  baseOpt.plugins.tooltip = {
+    callbacks: {
+      title: items => {
+        const checkin = slice[items[0].dataIndex];
+        return `${items[0].label} · ${fmtDateShort(checkin.date)}`;
+      }
     }
   };
 

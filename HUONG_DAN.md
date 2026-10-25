@@ -16,6 +16,8 @@ Project đã có cấu hình Vercel. Để deploy:
 
 **Lưu ý dữ liệu:** Vercel chạy backend dạng serverless. Project hiện lưu tài khoản, check-in và khảo sát trong file JSON; trên Vercel các file này nằm trong thư mục tạm và có thể mất khi function khởi động lại. Vì vậy bản deploy hiện tại phù hợp để xem thử, chưa phù hợp để lưu dữ liệu thật. Muốn giữ dữ liệu ổn định cần chuyển sang database trước khi dùng thực tế.
 
+Biểu đồ của học sinh và biểu đồ lịch sử trong chi tiết học sinh ở trang giáo viên dùng cùng các bản ghi check-in; mỗi điểm là một lần check-in. Trang xu hướng toàn trường vẫn tổng hợp theo ngày và hiển thị số lượt check-in trong ngày.
+
 **Bảo mật:** Không commit `.env`, không đưa API key vào mã nguồn và không dùng lại các key đã bị chia sẻ. Hãy thu hồi key cũ và tạo key mới trước khi deploy.
 
 ## ⚠️ QUAN TRỌNG
