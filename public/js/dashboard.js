@@ -23,8 +23,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(() => {
+    if (document.hidden) return;
     loadSection(currentSection);
-  }, 30000);
+  }, 15000);
 }
 
 // ── Chuyển section ────────────────────────────────────────────────

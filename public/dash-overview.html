@@ -14,7 +14,7 @@
 <main class="t-main">
   <div class="t-header">
     <div><h1>📊 Tổng quan</h1><p class="t-subtitle" id="dashDate"></p></div>
-    <span style="font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:99px">🔄 Tự động cập nhật 30s</span>
+    <span style="font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:99px">🔄 Tự động cập nhật 15s</span>
   </div>
   <div class="t-body">
     <div class="stat-cards" id="statCards">
@@ -112,7 +112,9 @@ async function loadCharts() {
 }
 
 loadPage();
-setInterval(loadPage, 30000);
+setInterval(() => {
+  if (!document.hidden) loadPage();
+}, 15000);
 </script>
 </body>
 </html>

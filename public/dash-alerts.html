@@ -112,7 +112,9 @@ async function openModal(id) {
 }
 
 loadPage();
-setInterval(loadPage, 60000);
+setInterval(() => {
+  if (!document.hidden) loadPage();
+}, 15000);
 </script>
 </body>
 </html>

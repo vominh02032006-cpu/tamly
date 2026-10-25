@@ -300,9 +300,10 @@ function closeStudentModal() {
 
 loadPage();
 setInterval(async () => {
+  if (document.hidden) return;
   await loadPage();
   if (selectedStudentId) await openModal(selectedStudentId);
-}, 30000);
+}, 15000);
 </script>
 
 <!-- Modal sửa học sinh -->

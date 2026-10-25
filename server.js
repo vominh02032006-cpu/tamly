@@ -4,8 +4,9 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const cors    = require('cors');
 const fs      = require('fs');
-const os      = require('os');
 const path    = require('path');
+const { randomUUID } = require('crypto');
+const { Pool } = require('pg');
 
 const app = express();
 app.use(cors());
@@ -14,24 +15,64 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const IS_VERCEL  = process.env.VERCEL === '1';
 const JWT_SECRET = process.env.JWT_SECRET || (IS_VERCEL ? '' : 'moodtok_secret');
-const DB_PATH = IS_VERCEL
-  ? path.join(os.tmpdir(), 'moodtok-data')
-  : path.join(__dirname, 'data');
+const DATABASE_URL = process.env.DATABASE_URL || '';
+const DB_POOL = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL, max: 1 }) : null;
+const DB_PATH = path.join(__dirname, 'data');
+const DATA_TABLES = {
+  'users.json': 'moodtok_users',
+  'checkins.json': 'moodtok_checkins',
+  'surveys.json': 'moodtok_surveys'
+};
+DB_POOL?.on('error', error => console.error('Database connection error:', error.message));
 
 // ── Khởi tạo thư mục & file dữ liệu ──────────────────────────────
-if (!fs.existsSync(DB_PATH)) fs.mkdirSync(DB_PATH, { recursive: true });
+if (!IS_VERCEL && !DB_POOL && !fs.existsSync(DB_PATH)) fs.mkdirSync(DB_PATH, { recursive: true });
 
 async function readJSON(file) {
+  if (DB_POOL) {
+    const table = DATA_TABLES[file];
+    if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
+    const { rows } = await DB_POOL.query(`SELECT data FROM ${table}`);
+    return rows.map(row => row.data);
+  }
+
+  if (IS_VERCEL) throw new Error('Thiếu DATABASE_URL để kết nối cơ sở dữ liệu.');
   const fp = path.join(DB_PATH, file);
   if (!fs.existsSync(fp)) return [];
   return JSON.parse(fs.readFileSync(fp, 'utf8'));
 }
 
 function writeJSON(file, data) {
+  if (IS_VERCEL || DB_POOL) throw new Error('Không thể ghi file JSON khi đang dùng cơ sở dữ liệu.');
   fs.writeFileSync(path.join(DB_PATH, file), JSON.stringify(data, null, 2));
 }
 
 async function insertRecord(file, record) {
+  if (DB_POOL) {
+    const table = DATA_TABLES[file];
+    if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
+    const columns = ['id', 'data'];
+    const values = [record.id, record];
+    if (file === 'users.json') {
+      columns.push('username');
+      values.push(record.username);
+    } else {
+      columns.push('student_id', 'date');
+      values.push(record.studentId, record.date);
+    }
+    const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+    try {
+      await DB_POOL.query(
+        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`,
+        values
+      );
+    } catch (error) {
+      if (file === 'users.json' && error.code === '23505') error.status = 409;
+      throw error;
+    }
+    return record;
+  }
+
   const records = await readJSON(file);
   records.push(record);
   writeJSON(file, records);
@@ -44,11 +85,28 @@ async function updateRecord(file, id, changes) {
   if (!current) return null;
   const updated = { ...current, ...changes };
 
+  if (DB_POOL) {
+    const table = DATA_TABLES[file];
+    if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
+    const { rowCount } = await DB_POOL.query(
+      `UPDATE ${table} SET data = $1 WHERE id = $2`,
+      [updated, id]
+    );
+    return rowCount ? updated : null;
+  }
+
   writeJSON(file, records.map(record => record.id === id ? updated : record));
   return updated;
 }
 
 async function deleteRecord(file, id) {
+  if (DB_POOL) {
+    const table = DATA_TABLES[file];
+    if (!table) throw new Error(`Không hỗ trợ bộ dữ liệu: ${file}`);
+    const { rowCount } = await DB_POOL.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    return rowCount;
+  }
+
   const records = await readJSON(file);
   const remaining = records.filter(record => record.id !== id);
   writeJSON(file, remaining);
@@ -56,6 +114,14 @@ async function deleteRecord(file, id) {
 }
 
 async function deleteStudentCheckins(studentId) {
+  if (DB_POOL) {
+    const { rowCount } = await DB_POOL.query(
+      'DELETE FROM moodtok_checkins WHERE student_id = $1',
+      [studentId]
+    );
+    return rowCount;
+  }
+
   const checkins = await readJSON('checkins.json');
   const remaining = checkins.filter(checkin => checkin.studentId !== studentId);
   writeJSON('checkins.json', remaining);
@@ -66,12 +132,12 @@ async function deleteStudentCheckins(studentId) {
 async function seedUsers() {
   let users = await readJSON('users.json');
   if (users.length === 0) {
-    const username = IS_VERCEL ? process.env.INITIAL_TEACHER_USERNAME : 'admin';
-    const password = IS_VERCEL ? process.env.INITIAL_TEACHER_PASSWORD : 'admin123';
+    const username = process.env.INITIAL_TEACHER_USERNAME || (IS_VERCEL ? '' : 'admin');
+    const password = process.env.INITIAL_TEACHER_PASSWORD || (IS_VERCEL ? '' : 'admin123');
     if (username && password) {
       users = [
         {
-          id: 'GV001',
+          id: 'GV' + randomUUID(),
           name: process.env.INITIAL_TEACHER_NAME || 'Giáo viên tư vấn',
           role: 'teacher',
           class: null,
@@ -80,29 +146,79 @@ async function seedUsers() {
           createdAt: new Date().toISOString()
         }
       ];
-      writeJSON('users.json', users);
+      if (DB_POOL) {
+        await DB_POOL.query(
+          `INSERT INTO moodtok_users (id, username, data)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (username) DO NOTHING`,
+          [users[0].id, users[0].username, users[0]]
+        );
+      } else {
+        writeJSON('users.json', users);
+      }
       console.log('✅ Đã tạo tài khoản giáo viên ban đầu');
     } else {
       console.warn('⚠️  Chưa tạo giáo viên ban đầu. Cấu hình INITIAL_TEACHER_USERNAME và INITIAL_TEACHER_PASSWORD.');
     }
   }
-  if (!fs.existsSync(path.join(DB_PATH, 'checkins.json'))) writeJSON('checkins.json', []);
-  if (!fs.existsSync(path.join(DB_PATH, 'surveys.json'))) writeJSON('surveys.json', []);
+  if (!DB_POOL) {
+    if (!fs.existsSync(path.join(DB_PATH, 'checkins.json'))) writeJSON('checkins.json', []);
+    if (!fs.existsSync(path.join(DB_PATH, 'surveys.json'))) writeJSON('surveys.json', []);
+  }
 }
-const storageReady = seedUsers().then(
+
+async function initializeStorage() {
+  if (IS_VERCEL && !DB_POOL) {
+    throw new Error('Thiếu DATABASE_URL. Hãy thêm connection string Neon vào Environment Variables trên Vercel.');
+  }
+  if (DB_POOL) {
+    await DB_POOL.query(`
+      CREATE TABLE IF NOT EXISTS moodtok_users (
+        id text PRIMARY KEY,
+        username text NOT NULL UNIQUE,
+        data jsonb NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS moodtok_checkins (
+        id text PRIMARY KEY,
+        student_id text NOT NULL REFERENCES moodtok_users (id) ON DELETE CASCADE,
+        date timestamptz NOT NULL,
+        data jsonb NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS moodtok_surveys (
+        id text PRIMARY KEY,
+        student_id text NOT NULL REFERENCES moodtok_users (id) ON DELETE CASCADE,
+        date timestamptz NOT NULL,
+        data jsonb NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS moodtok_checkins_student_date_idx
+        ON moodtok_checkins (student_id, date DESC);
+      CREATE INDEX IF NOT EXISTS moodtok_surveys_student_date_idx
+        ON moodtok_surveys (student_id, date DESC);
+    `);
+  }
+  await seedUsers();
+}
+const storageReady = initializeStorage().then(
   () => null,
   error => error
 );
 
 app.use('/api', async (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  const error = await storageReady;
+  if (error) {
+    console.error('Storage initialization failed:', error.message);
+    return res.status(503).json({
+      error: IS_VERCEL
+        ? 'Không kết nối được cơ sở dữ liệu. Hãy kiểm tra DATABASE_URL và cấu hình Neon trên Vercel.'
+        : 'Không thể khởi tạo nơi lưu dữ liệu. Vui lòng kiểm tra log máy chủ.'
+    });
+  }
   if (!JWT_SECRET) {
     return res.status(503).json({
       error: 'Thiếu JWT_SECRET trên Vercel. Hãy thêm biến môi trường rồi deploy lại.'
     });
   }
-
-  const error = await storageReady;
-  if (error) return next(error);
   next();
 });
 
@@ -282,7 +398,7 @@ app.post('/api/auth/register-student', async (req, res) => {
     return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác' });
 
   const newStudent = {
-    id:        'HS' + Date.now(),
+    id:        'HS' + randomUUID(),
     name:      name.trim(),
     role:      'student',
     class:     studentClass.trim(),
@@ -324,7 +440,7 @@ app.post('/api/auth/register-teacher', async (req, res) => {
     return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác' });
 
   const newTeacher = {
-    id:        'GV' + Date.now(),
+    id:        'GV' + randomUUID(),
     name:      name.trim(),
     role:      'teacher',
     class:     null,
@@ -359,7 +475,7 @@ app.post('/api/auth/create-student', auth, teacherOnly, async (req, res) => {
     return res.status(400).json({ error: 'Mã học sinh đã tồn tại' });
 
   const newStudent = {
-    id:        'HS' + Date.now(),
+    id:        'HS' + randomUUID(),
     name,
     role:      'student',
     class:     studentClass,
@@ -477,7 +593,7 @@ app.post('/api/checkin', auth, async (req, res) => {
   }
 
   const record = {
-    id:         Date.now().toString(),
+    id:         randomUUID(),
     studentId:  req.user.id,
     studentName:req.user.name,
     class:      req.user.class,
@@ -638,7 +754,7 @@ app.post('/api/survey', auth, async (req, res) => {
   });
 
   const record = {
-    id:         Date.now().toString(),
+    id:         randomUUID(),
     studentId:  req.user.id,
     studentName:req.user.name,
     class:      req.user.class,

@@ -16,6 +16,7 @@ function requireAuth(role) {
 async function api(method, path, body) {
   const opts = {
     method,
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() }
   };
   if (body) opts.body = JSON.stringify(body);
