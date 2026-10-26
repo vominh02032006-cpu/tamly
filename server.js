@@ -589,7 +589,9 @@ app.post('/api/checkin', auth, async (req, res) => {
   let aiAnalysis = null;
   if (shareText && shareText.trim().length > 5) {
     const prompt = buildAIPrompt({ emotion, socialHours, sleepHours, sleepQuality, studyPressure, stressLevel, shareText, mhi });
-    aiAnalysis = await callGemini(prompt);
+    const rawAi = await callGemini(prompt);
+    const parsedAi = sanitizeAIResponse(rawAi);
+    aiAnalysis = parsedAi ? JSON.stringify(parsedAi) : rawAi;
   }
 
   const record = {
@@ -857,6 +859,28 @@ function getRuleAlerts(d) {
   return a;
 }
 
+function sanitizeAIResponse(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  let text = raw.trim();
+
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    text = text.slice(start, end + 1);
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && Array.isArray(parsed.tips) && parsed.tips.length > 0) {
+      return parsed;
+    }
+  } catch {}
+
+  return null;
+}
+
 function buildAIPrompt(d) {
   const emotionLabels = {5:'Rất tích cực',4:'Tích cực',3:'Bình thường',2:'Buồn/chán nản',1:'Lo lắng/căng thẳng',0:'Rất buồn/tuyệt vọng'};
   const qualLabels    = ['Rất kém','Kém','Bình thường','Tốt','Rất tốt'];
@@ -871,13 +895,15 @@ Dữ liệu hôm nay:
 - Chỉ số MHI: ${d.mhi}/100
 ${d.shareText ? `- Học sinh chia sẻ: "${d.shareText}"` : ''}
 
-Trả lời JSON theo đúng format sau (không thêm gì khác):
-{"tips":[{"icon":"emoji","text":"nội dung gợi ý ngắn gọn, thực tế"}]}
+Trả lời CHỈ theo JSON hợp lệ, không thêm lời giải thích, không thêm markdown code fence.
+Ví dụ format đúng:
+{"tips":[{"icon":"⭐","text":"**Giấc ngủ** quá ít, hãy ưu tiên đi ngủ sớm hơn 30 phút mỗi tối."}]}
 
 Yêu cầu:
 - 3-4 gợi ý, mỗi gợi ý 1-2 câu
 - Thực tế, dễ áp dụng cho học sinh THPT
-- Ưu tiên vấn đề có điểm thấp nhất trong 6 yếu tố`;
+- Ưu tiên vấn đề có điểm thấp nhất trong 6 yếu tố
+- text trong JSON phải là chuỗi UTF-8 hợp lệ, dùng **đậm** khi cần`;
 }
 
 app.use((error, req, res, next) => {

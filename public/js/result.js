@@ -141,6 +141,42 @@ function renderBreakdown(d) {
   `).join('');
 }
 
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function renderMarkdownText(text) {
+  return escapeHtml(String(text ?? ''))
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function parseAIAnalysis(raw) {
+  if (!raw) return null;
+  let text = String(raw).trim();
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    text = text.slice(start, end + 1);
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && Array.isArray(parsed.tips) && parsed.tips.length > 0) return parsed;
+  } catch {}
+
+  return null;
+}
+
 // ── AI Section ────────────────────────────────────────────────────
 function renderAI(d) {
   const el    = document.getElementById('aiContent');
@@ -149,18 +185,18 @@ function renderAI(d) {
 
   if (d.aiAnalysis) {
     if (badge) badge.textContent = '✨ Powered by Gemini';
-    try {
-      const parsed = JSON.parse(d.aiAnalysis.replace(/```json|```/g, '').trim());
-      const tips   = parsed.tips || [];
-      if (tips.length > 0) {
-        el.innerHTML = tips.map(t =>
-          `<div class="ai-tip"><span class="ai-tip-icon">${t.icon || '💡'}</span><span>${t.text}</span></div>`
-        ).join('');
-        return;
-      }
-    } catch {}
+
+    const parsed = parseAIAnalysis(d.aiAnalysis);
+    if (parsed) {
+      const tips = parsed.tips || [];
+      el.innerHTML = tips.map(t =>
+        `<div class="ai-tip"><span class="ai-tip-icon">${t.icon || '💡'}</span><span>${renderMarkdownText(t.text || '')}</span></div>`
+      ).join('');
+      return;
+    }
+
     // Text thuần
-    el.innerHTML = `<div class="ai-tip"><span class="ai-tip-icon">🤖</span><span>${d.aiAnalysis.replace(/\n/g,'<br>')}</span></div>`;
+    el.innerHTML = `<div class="ai-tip"><span class="ai-tip-icon">🤖</span><span>${renderMarkdownText(d.aiAnalysis)}</span></div>`;
     return;
   }
 
@@ -173,11 +209,11 @@ function renderAI(d) {
   alerts.forEach(a => {
     html += `<div class="ai-tip" style="border-left:3px solid ${a.level==='danger'?'#ef4444':'#f59e0b'}">
       <span class="ai-tip-icon">${a.level==='danger'?'🔴':'🟡'}</span>
-      <span>${a.msg}</span>
+      <span>${renderMarkdownText(a.msg)}</span>
     </div>`;
   });
   tips.forEach(t => {
-    html += `<div class="ai-tip"><span class="ai-tip-icon">${t.icon}</span><span>${t.text}</span></div>`;
+    html += `<div class="ai-tip"><span class="ai-tip-icon">${t.icon}</span><span>${renderMarkdownText(t.text)}</span></div>`;
   });
   el.innerHTML = html || '<div class="ai-tip"><span class="ai-tip-icon">💚</span><span>Bạn đang ổn. Tiếp tục check-in mỗi ngày nhé!</span></div>';
 }
