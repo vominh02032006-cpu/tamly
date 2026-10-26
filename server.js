@@ -289,7 +289,7 @@ async function callGroq(prompt) {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: prompt }
         ],
-        max_tokens: 400, temperature: 0.7
+        max_tokens: 800, temperature: 0.7
       });
       const data = await httpsPost(
         'api.groq.com',
@@ -314,7 +314,7 @@ async function callGeminiAPI(prompt) {
   const body = JSON.stringify({
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { maxOutputTokens: 400, temperature: 0.7 }
+    generationConfig: { maxOutputTokens: 800, temperature: 0.7 }
   });
   const data = await httpsPost(
     'generativelanguage.googleapis.com',
@@ -591,7 +591,7 @@ app.post('/api/checkin', auth, async (req, res) => {
     const prompt = buildAIPrompt({ emotion, socialHours, sleepHours, sleepQuality, studyPressure, stressLevel, shareText, mhi });
     const rawAi = await callGemini(prompt);
     const parsedAi = sanitizeAIResponse(rawAi);
-    aiAnalysis = parsedAi ? JSON.stringify(parsedAi) : rawAi;
+    aiAnalysis = parsedAi ? JSON.stringify(parsedAi) : null;
   }
 
   const record = {

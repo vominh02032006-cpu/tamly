@@ -177,6 +177,11 @@ function parseAIAnalysis(raw) {
   return null;
 }
 
+function isMalformedAIJson(raw) {
+  const text = String(raw || '').trim();
+  return /^(?:```(?:json)?\s*)?[\[{]/i.test(text) || /"tips"\s*:/i.test(text);
+}
+
 // ── AI Section ────────────────────────────────────────────────────
 function renderAI(d) {
   const el    = document.getElementById('aiContent');
@@ -184,10 +189,9 @@ function renderAI(d) {
   if (!el) return;
 
   if (d.aiAnalysis) {
-    if (badge) badge.textContent = '✨ Powered by Gemini';
-
     const parsed = parseAIAnalysis(d.aiAnalysis);
     if (parsed) {
+      if (badge) badge.textContent = '✨ Powered by Gemini';
       const tips = parsed.tips || [];
       el.innerHTML = tips.map(t =>
         `<div class="ai-tip"><span class="ai-tip-icon">${t.icon || '💡'}</span><span>${renderMarkdownText(t.text || '')}</span></div>`
@@ -195,9 +199,11 @@ function renderAI(d) {
       return;
     }
 
-    // Text thuần
-    el.innerHTML = `<div class="ai-tip"><span class="ai-tip-icon">🤖</span><span>${renderMarkdownText(d.aiAnalysis)}</span></div>`;
-    return;
+    if (!isMalformedAIJson(d.aiAnalysis)) {
+      if (badge) badge.textContent = '✨ Powered by Gemini';
+      el.innerHTML = `<div class="ai-tip"><span class="ai-tip-icon">🤖</span><span>${renderMarkdownText(d.aiAnalysis)}</span></div>`;
+      return;
+    }
   }
 
   // Không có Gemini → rule-based
