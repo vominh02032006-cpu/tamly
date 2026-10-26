@@ -32,7 +32,10 @@ function buildSidebar(activePage) {
   mount.innerHTML = `
     <aside class="sidebar">
       <div class="sb-logo">🧠 MoodTok</div>
-      <nav class="sb-nav">${navHtml}</nav>
+      <nav class="sb-nav">
+        ${navHtml}
+        <button class="sn mobile-logout" type="button" onclick="logout()"><span>🚪</span> Đăng xuất</button>
+      </nav>
       <div class="sb-foot">
         <div class="sb-user">
           <div class="sb-av">👨‍🏫</div>

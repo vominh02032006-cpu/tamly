@@ -248,3 +248,35 @@
   .charts-grid { grid-template-columns: 1fr; }
   .survey-card { flex-wrap: wrap; }
 }
+
+@media (max-width: 768px) {
+  .result-main { padding: 18px 0 40px; }
+  .result-page .app-header .header-right {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: flex-start;
+  }
+  .welcome-card { align-items: center; gap: 18px; padding: 22px 18px; border-radius: 18px; }
+  .welcome-left { align-self: center; }
+  .mhi-circle { width: 116px; height: 116px; }
+  .welcome-right { width: 100%; }
+  .welcome-right h1 { font-size: 1.25rem; }
+  .today-summary { gap: 8px; }
+  .summary-chip { padding: 6px 10px; font-size: 0.76rem; }
+  .ai-card, .chart-card, .survey-card { padding: 18px; border-radius: 16px; }
+  .charts-tabs { overflow-x: auto; padding-bottom: 4px; }
+  .chart-tab { flex: 0 0 auto; padding: 8px 14px; font-size: 0.8rem; }
+  .history-table-wrap { border-radius: 14px; }
+  .history-table { min-width: 640px; }
+  .survey-card { align-items: flex-start; gap: 12px; }
+  .survey-card > div { min-width: 0; flex: 1 1 calc(100% - 60px); }
+  .btn-survey { width: 100%; text-align: center; }
+  #breakdownGrid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 420px) {
+  .welcome-card { padding: 18px 14px; }
+  .ai-card, .chart-card, .survey-card { padding: 14px; }
+  .mhi-desc { font-size: 0.84rem; }
+  #breakdownGrid { gap: 7px !important; }
+}

@@ -31,6 +31,9 @@
     .btn-save { width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-family:'Be Vietnam Pro',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s; }
     .btn-save:hover { background:#4f46e5; }
     .btn-save:disabled { opacity:.5;cursor:not-allowed; }
+    @media(max-width:768px) {
+      #statsGrid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+    }
   </style>
 </head>
 <body>
@@ -100,19 +103,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (isTeacher) {
     // Giáo viên: dùng layout có sidebar
     document.body.classList.add('teacher-page');
-    document.getElementById('profileWrap').style.cssText = 'margin-left:230px; padding:32px 40px 48px; max-width:680px;';
+    document.getElementById('profileWrap').classList.add('teacher-profile-wrap');
     document.title = 'Tài khoản – MoodTok';
   } else {
     // Học sinh: không sidebar, centered
     document.body.style.background = 'linear-gradient(135deg,#f0f4ff,#faf5ff)';
-    document.getElementById('profileWrap').style.cssText = 'max-width:520px; margin:0 auto; padding:32px 24px 48px;';
+    document.getElementById('profileWrap').classList.add('student-profile-wrap');
     document.getElementById('student-header-mount').innerHTML = `
-      <header style="position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:16px">
-        <a href="/" style="font-size:1.1rem;font-weight:700;color:#6366f1;text-decoration:none">🧠 MoodTok</a>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.85rem;color:#64748b">${user.name}</span>
-          <a href="result.html" style="font-size:.85rem;color:#64748b;text-decoration:none">← Quay lại</a>
-          <button onclick="logout()" style="background:none;border:1px solid #e2e8f0;padding:6px 14px;border-radius:8px;font-size:.84rem;cursor:pointer;color:#64748b;font-family:'Be Vietnam Pro',sans-serif">Đăng xuất</button>
+      <header class="student-profile-header">
+        <a href="/" class="header-logo">🧠 MoodTok</a>
+        <div>
+          <span>${user.name}</span>
+          <a href="result.html">← Quay lại</a>
+          <button class="btn-logout" onclick="logout()">Đăng xuất</button>
         </div>
       </header>`;
   }

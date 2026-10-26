@@ -435,14 +435,51 @@
 }
 
 @media (max-width: 768px) {
-  .hero { flex-direction: column; padding: 90px 24px 48px; text-align: center; }
+  .nav-container {
+    height: auto;
+    min-height: 64px;
+    padding: 10px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .nav-logo { font-size: 1.05rem; }
+  .nav-links { justify-content: space-between; gap: 8px; }
+  .nav-links a:not(.btn-nav) { display: inline-block; font-size: 0.72rem; white-space: nowrap; }
+  .nav-links .btn-nav { padding: 7px 10px; font-size: 0.75rem; white-space: nowrap; }
+  .hero { flex-direction: column; padding: 126px 20px 40px; gap: 24px; text-align: center; min-height: 0; }
   .hero-actions { justify-content: center; }
-  .hero-stats { justify-content: center; }
-  .hero-visual { display: none; }
-  .hero-title { font-size: 2rem; }
+  .hero-stats { justify-content: center; gap: 10px; }
+  .stat { flex: 1; min-width: 0; }
+  .stat-num { font-size: 1.1rem; }
+  .stat-label { font-size: 0.65rem; }
+  .stat-divider { height: 26px; }
+  .hero-visual { display: flex; width: 100%; }
+  .phone-mockup { width: 210px; height: 420px; padding: 13px; border-radius: 34px; }
+  .phone-screen { border-radius: 24px; padding: 18px 14px; }
+  .float-card { display: none; }
+  .hero-title { font-size: clamp(1.75rem, 7.5vw, 2rem); }
+  .hero-title br { display: none; }
+  .hero-desc { font-size: 0.94rem; margin-bottom: 24px; }
+  .hero-actions { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 28px; }
+  .hero-actions a { justify-content: center; }
+  .quick-links-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .about, .features, .how { padding: 52px 0; }
+  .section-title { font-size: 1.55rem; }
   .factors-grid { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
   .steps { flex-direction: column; align-items: center; }
   .step-arrow { transform: rotate(90deg); padding-top: 0; }
-  .nav-links a:not(.btn-nav) { display: none; }
+  .cta { padding: 56px 0; }
+  .cta h2 { font-size: 1.55rem; }
+  .footer { padding: 32px 0; }
+  .disclaimer-section { padding: 20px 0; }
+  .disclaimer-box { padding: 14px; font-size: 0.82rem; }
+}
+
+@media (max-width: 360px) {
+  .nav-container { padding-left: 12px; padding-right: 12px; }
+  .nav-links { gap: 5px; }
+  .nav-links a:not(.btn-nav) { font-size: 0.66rem; }
+  .nav-links .btn-nav { padding: 7px 8px; font-size: 0.7rem; }
 }
